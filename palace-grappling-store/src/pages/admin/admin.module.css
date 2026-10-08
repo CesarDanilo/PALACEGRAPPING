@@ -1,0 +1,136 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+.pageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.pageTitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.muted {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+.metric {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.metricLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+.metricValue {
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+}
+.metricHint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.columns {
+  display: grid;
+  gap: var(--space-4);
+}
+.panel {
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  overflow-x: auto;
+}
+.panelTitle {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: var(--space-2);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  text-align: left;
+}
+.table th {
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+}
+.activity {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+.activity time {
+  color: var(--text-muted);
+}
+
+.loginPage {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+  background: var(--surface-sunken);
+}
+.loginCard {
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, 400px);
+  padding: var(--space-8);
+  background: var(--surface-raised);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.loginBrand {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-display);
+  letter-spacing: 0.06em;
+}
+.loginBrand span {
+  color: var(--accent);
+}
+.loginTitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (min-width: 1024px) {
+  .columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,130 @@
+/*
+ * Design tokens da Palace Grappling.
+ *
+ * STATUS: provisórios. Derivados da paleta definida no briefing (preto profundo,
+ * branco, grafite, verde-limão). Serão revisados após a análise das três
+ * imagens de referência visual. Componentes devem usar apenas estes tokens,
+ * nunca valores literais, para que a revisão aconteça em um único lugar.
+ */
+
+:root {
+  /* ── Cor: base ── */
+  --color-black: #070707;
+  --color-ink: #0d0d0d;
+  --color-graphite-900: #141414;
+  --color-graphite-800: #1c1c1c;
+  --color-graphite-700: #262626;
+  --color-graphite-600: #333333;
+  --color-graphite-400: #6b6b6b;
+  --color-graphite-300: #9a9a9a;
+  --color-white: #f7f7f5;
+  --color-pure-white: #ffffff;
+
+  /* ── Cor: destaque (uso moderado: CTAs, indicadores, promoções, foco) ── */
+  --color-lime-500: #c6ff1a;
+  --color-lime-400: #d4ff4d;
+  --color-lime-600: #a8dc00;
+
+  /* ── Cor: feedback ── */
+  --color-success: #3ddc84;
+  --color-warning: #ffb020;
+  --color-danger: #ff4d4f;
+  --color-info: #5aa9ff;
+
+  /* ── Papéis semânticos ── */
+  --surface-page: var(--color-black);
+  --surface-raised: var(--color-graphite-900);
+  --surface-sunken: var(--color-ink);
+  --surface-control: var(--color-graphite-800);
+  --border-subtle: var(--color-graphite-700);
+  --border-strong: var(--color-graphite-600);
+  --text-primary: var(--color-white);
+  --text-secondary: var(--color-graphite-300);
+  --text-muted: var(--color-graphite-400);
+  --text-inverse: var(--color-black);
+  --accent: var(--color-lime-500);
+  --accent-hover: var(--color-lime-400);
+  --accent-pressed: var(--color-lime-600);
+  --on-accent: var(--color-black);
+  --price-sale: var(--color-lime-500);
+
+  /* ── Tipografia ── */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --display-sm: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --display-md: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);
+  --display-lg: clamp(3.25rem, 1.8rem + 7vw, 8rem);
+  --display-xl: clamp(4rem, 2rem + 10vw, 11.5rem);
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-display: 800;
+
+  --leading-tight: 0.92;
+  --leading-snug: 1.2;
+  --leading-body: 1.55;
+  --tracking-display: -0.01em;
+  --tracking-caps: 0.12em;
+
+  /* ── Espaçamento (escala de 4px) ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+  --content-max: 1440px;
+
+  /* ── Bordas: loja com cantos retos; painel levemente arredondado ── */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+
+  /* ── Interação ── */
+  --focus-ring: 0 0 0 2px var(--surface-page), 0 0 0 4px var(--accent);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --opacity-disabled: 0.45;
+
+  /* ── Camadas ── */
+  --z-header: 50;
+  --z-drawer: 80;
+  --z-modal: 100;
+  --z-toast: 120;
+
+  /* ── Controles ── */
+  --control-height: 3rem;
+  --control-height-sm: 2.25rem;
+}
+
+/* Breakpoints (referência; CSS não aceita variáveis em media queries):
+ *   sm  480px   telefones grandes
+ *   md  768px   tablets
+ *   lg  1024px  desktop
+ *   xl  1440px  desktop amplo
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

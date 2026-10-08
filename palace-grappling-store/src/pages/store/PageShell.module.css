@@ -1,0 +1,15 @@
+.shell {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-16);
+}
+.title {
+  font-size: var(--display-md);
+}
+.notice {
+  max-width: 60ch;
+  padding: var(--space-4);
+  border: var(--border-width) dashed var(--border-strong);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
