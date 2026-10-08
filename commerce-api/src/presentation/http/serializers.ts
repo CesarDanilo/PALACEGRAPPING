@@ -51,6 +51,7 @@ export function publicCatalog(c: CatalogRecord) {
     type: c.type,
     heroImageUrl: c.heroImageUrl,
     endsAt: c.endsAt,
+    productCount: c.productIds.length,
   };
 }
 

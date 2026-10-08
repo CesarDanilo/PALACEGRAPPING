@@ -128,6 +128,8 @@ export interface ProductRepository {
   create(tenantId: string, data: ProductWrite, variants: (VariantWrite & { stock: number })[]): Promise<ProductRecord>;
   update(tenantId: string, id: string, data: Partial<ProductWrite>): Promise<ProductRecord | null>;
   softDelete(tenantId: string, id: string, at: Date): Promise<boolean>;
+  /** Valores distintos para filtros da vitrine (somente produtos e variantes ativos). */
+  facets(tenantId: string, catalogId?: string): Promise<{ lines: string[]; sizes: string[]; colors: { name: string; hex: string | null }[] }>;
   /** Mapa de produtos existentes no tenant (validação de associações). */
   existingIds(tenantId: string, ids: string[]): Promise<Set<string>>;
 }

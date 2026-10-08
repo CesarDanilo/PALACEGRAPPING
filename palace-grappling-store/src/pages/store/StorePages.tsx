@@ -1,211 +1,318 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { AvailabilityBadge, EmptyState, LoadingState, Alert } from '@/components/ui/Feedback';
-import { useCart } from '@/features/cart/cart-store';
-import { readTrackingToken } from '@/features/checkout/tracking';
+import { BeltBar, CircleBadge } from '@/brand/Brand';
+import { ArrowUpRightIcon } from '@/components/icons';
+import { Media } from '@/components/media/Media';
+import { ListingHero, ProductListing, lineLabel, useFacets, useListingQuery } from '@/components/store/ProductListing';
+import { Countdown } from '@/components/store/Sections';
+import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
+import { media } from '@/content/media';
 import { ApiError } from '@/lib/api/client';
 import { storefrontApi, storefrontKeys } from '@/lib/api/storefront';
-import type { PublicProduct } from '@/lib/api/types';
-import { formatMoney } from '@/lib/money';
-import { PageShell } from './PageShell';
+import type { SalesContext } from '@/lib/api/types';
+import styles from './pages.module.css';
 
-// Páginas da loja na fase 1: rotas, dados e estados (carregando/erro/vazio) já
-// integrados à API, com marcação provisória. A composição visual vem na fase 2.
+export { HomePage } from './HomePage';
+export { ProductPage } from './ProductPage';
+export { CartPage } from './CartPage';
+export { CheckoutPage } from './CheckoutPage';
+export { CheckoutResultPage, MyOrdersPage, OrderTrackingPage } from './OrderPages';
 
-function errorMessage(error: unknown) {
-  if (error instanceof ApiError) return error.message;
-  return 'Não foi possível carregar agora. Tente novamente.';
-}
+const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Não foi possível carregar agora.');
 
-function ProductList({ products }: { products: PublicProduct[] }) {
-  if (!products.length) return <EmptyState title="Nenhum produto por aqui ainda" />;
-  return (
-    <ul>
-      {products.map((p) => (
-        <li key={p.id}>
-          <Link to={`/produto/${p.slug}`}>{p.name}</Link> — {formatMoney(p.priceRange.min)} <AvailabilityBadge value={p.availability} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-export function HomePage() {
-  const featured = useQuery({ queryKey: storefrontKeys.products({ featured: true, pageSize: 8 }), queryFn: () => storefrontApi.products({ featured: true, pageSize: 8 }) });
-  return (
-    <PageShell eyebrow="Jiu-Jitsu · Gi · No-Gi" title="Palace Grappling">
-      {featured.isPending ? <LoadingState /> : featured.isError ? <Alert tone="danger">{errorMessage(featured.error)}</Alert> : <ProductList products={featured.data.items} />}
-    </PageShell>
-  );
-}
-
-export function CollectionsPage() {
+/** /loja: toda a vitrine, com busca (q), linha e demais filtros na URL. */
+export function ShopPage() {
+  const [params] = useSearchParams();
+  const query = useListingQuery();
+  const facets = useFacets();
   const categories = useQuery({ queryKey: storefrontKeys.categories, queryFn: storefrontApi.categories });
+  const q = params.get('q');
+  const line = params.get('linha');
+  const title = q ? `Busca: ${q}` : line ? lineLabel(line) : query.sort === 'newest' ? 'Lançamentos' : 'Loja';
   return (
-    <PageShell eyebrow="Linhas" title="Coleções">
-      {categories.isPending ? (
-        <LoadingState />
-      ) : categories.isError ? (
-        <Alert tone="danger">{errorMessage(categories.error)}</Alert>
-      ) : (
-        <ul>
-          {categories.data.items.map((c) => (
-            <li key={c.id}>
-              <Link to={`/categoria/${c.slug}`}>{c.name}</Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </PageShell>
+    <>
+      <ListingHero eyebrow={q ? 'Resultados' : 'Palace Grappling'} title={title} />
+      <div className="container">
+        <ProductListing query={query} fetcher={storefrontApi.products} queryKey={['products', 'shop']} facets={facets.data} categories={categories.data?.items} />
+      </div>
+    </>
   );
 }
 
 export function CategoryPage() {
   const { slug = '' } = useParams();
-  const [params] = useSearchParams();
-  const query = { category: slug, page: Number(params.get('pagina') ?? 1), sort: (params.get('ordem') as 'relevance' | null) ?? 'relevance' };
-  const products = useQuery({ queryKey: storefrontKeys.products(query), queryFn: () => storefrontApi.products(query) });
-  return (
-    <PageShell eyebrow="Categoria" title={slug.replace(/-/g, ' ')}>
-      {products.isPending ? <LoadingState /> : products.isError ? <Alert tone="danger">{errorMessage(products.error)}</Alert> : <ProductList products={products.data.items} />}
-    </PageShell>
-  );
-}
-
-export function ProductPage() {
-  const { slug = '' } = useParams();
-  const product = useQuery({ queryKey: storefrontKeys.product(slug), queryFn: () => storefrontApi.product(slug) });
-  if (product.isPending) return <LoadingState />;
-  if (product.isError) return <PageShell title="Produto"><Alert tone="danger">{errorMessage(product.error)}</Alert></PageShell>;
-  const p = product.data.product;
-  return (
-    <PageShell eyebrow={p.category?.name} title={p.name}>
-      <p>{formatMoney(p.priceRange.min)}</p>
-      <p>{p.description}</p>
-    </PageShell>
-  );
-}
-
-export function CatalogPage() {
-  const { slug = '' } = useParams();
-  const data = useQuery({ queryKey: storefrontKeys.catalog(slug, {}), queryFn: () => storefrontApi.catalog(slug) });
-  return (
-    <PageShell eyebrow="Catálogo" title={data.data?.catalog.name ?? 'Catálogo'}>
-      {data.isPending ? <LoadingState /> : data.isError ? <Alert tone="danger">{errorMessage(data.error)}</Alert> : <ProductList products={data.data.products.items} />}
-    </PageShell>
-  );
-}
-
-/** Link exclusivo: o token carrega a seleção; nada de dados de cliente na URL. */
-export function ExclusiveLinkPage() {
-  const { token = '' } = useParams();
-  const data = useQuery({ queryKey: storefrontKeys.link(token, {}), queryFn: () => storefrontApi.link(token), retry: false });
-  return (
-    <PageShell eyebrow="Acesso exclusivo" title={data.data?.catalog.name ?? 'Seleção exclusiva'}>
-      {data.isPending ? (
-        <LoadingState />
-      ) : data.isError ? (
-        <Alert tone="warning" title="Link indisponível">
-          {errorMessage(data.error)}
-        </Alert>
-      ) : (
-        <ProductList products={data.data.products.items} />
-      )}
-    </PageShell>
-  );
-}
-
-export function CartPage() {
-  const cart = useCart();
-  return (
-    <PageShell title="Carrinho">
-      {cart.items.length ? (
-        <ul>
-          {cart.items.map((i) => (
-            <li key={i.variantId}>
-              {i.quantity}× {i.productName} ({i.variantLabel})
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState title="Seu carrinho está vazio">
+  const categories = useQuery({ queryKey: storefrontKeys.categories, queryFn: storefrontApi.categories });
+  const category = categories.data?.items.find((c) => c.slug === slug);
+  const query = useListingQuery({ category: slug });
+  const facets = useFacets();
+  if (categories.isSuccess && !category) {
+    return (
+      <div className="container">
+        <EmptyState title="Categoria não encontrada">
           <Link to="/colecoes">Ver coleções</Link>
         </EmptyState>
-      )}
-    </PageShell>
+      </div>
+    );
+  }
+  return (
+    <>
+      <ListingHero eyebrow="Categoria" title={category?.name ?? '…'} description={category?.description} />
+      <div className="container">
+        <ProductListing query={query} fetcher={storefrontApi.products} queryKey={['products', 'category']} facets={facets.data} hide={['category']} />
+      </div>
+    </>
   );
 }
 
-export function CheckoutPage() {
-  return <PageShell title="Finalizar compra" />;
-}
-
-export function CheckoutResultPage() {
-  const [params] = useSearchParams();
-  const number = params.get('pedido');
+/** Catálogo público compartilhável (/catalogo/:slug). */
+export function CatalogPage() {
+  const { slug = '' } = useParams();
+  const query = useListingQuery();
+  const head = useQuery({ queryKey: storefrontKeys.catalog(slug, {}), queryFn: () => storefrontApi.catalog(slug, { pageSize: 1 }), retry: false });
+  const facets = useFacets(slug);
+  const context: SalesContext = { kind: 'catalog', slug };
+  if (head.isError) {
+    return (
+      <div className={`container ${styles.pad}`}>
+        <Alert tone="warning" title="Catálogo indisponível">
+          {errorText(head.error)} <Link to="/colecoes">Ver coleções</Link>
+        </Alert>
+      </div>
+    );
+  }
+  const catalog = head.data?.catalog;
   return (
-    <PageShell title="Pedido recebido">
-      <p>
-        O pagamento é confirmado pelo provedor, não por esta página. {number ? <Link to={`/pedido/${number}`}>Acompanhar pedido {number}</Link> : null}
-      </p>
-    </PageShell>
+    <>
+      <ListingHero eyebrow={catalog?.type === 'CAMPAIGN' ? 'Campanha' : 'Coleção'} title={catalog?.name ?? '…'} description={catalog?.description}>
+        {catalog?.endsAt ? <Countdown endsAt={catalog.endsAt} /> : null}
+      </ListingHero>
+      <div className="container">
+        <ProductListing
+          query={query}
+          fetcher={async (q) => (await storefrontApi.catalog(slug, q)).products}
+          queryKey={['catalog-products', slug]}
+          facets={facets.data}
+          context={context}
+        />
+      </div>
+    </>
   );
 }
 
-const statusLabel: Record<string, string> = {
-  PENDING_PAYMENT: 'Aguardando pagamento',
-  PAID: 'Pagamento aprovado',
-  PREPARING: 'Em preparação',
-  SHIPPED: 'Enviado',
-  DELIVERED: 'Entregue',
-  CANCELLED: 'Cancelado',
-  EXPIRED: 'Expirado',
-  RETURNED: 'Devolvido',
-};
+/** Link exclusivo (/c/:token): o token abre só a vitrine da seleção, nunca o painel. */
+export function ExclusiveLinkPage() {
+  const { token = '' } = useParams();
+  const query = useListingQuery();
+  const head = useQuery({ queryKey: storefrontKeys.link(token, {}), queryFn: () => storefrontApi.link(token, { pageSize: 1 }), retry: false });
+  const context: SalesContext = { kind: 'link', token };
 
-export function OrderTrackingPage() {
-  const { orderNumber = '' } = useParams();
-  const token = readTrackingToken(orderNumber);
-  const order = useQuery({
-    queryKey: storefrontKeys.order(orderNumber),
-    queryFn: () => storefrontApi.order(orderNumber, token ?? ''),
-    enabled: Boolean(token),
-    retry: false,
-  });
+  if (head.isPending) return <LoadingState label="Abrindo seleção exclusiva…" />;
+  if (head.isError) {
+    return (
+      <section className={styles.linkGate}>
+        <div className={`container ${styles.linkGateInner}`}>
+          <CircleBadge text="Acesso exclusivo · Palace Grappling" />
+          <h1 className={styles.linkTitle}>
+            Link indisponível<span className={styles.dot}>.</span>
+          </h1>
+          <p>{errorText(head.error)}</p>
+          <Link to="/loja" className={styles.textLink}>
+            Conhecer a loja <ArrowUpRightIcon size={16} />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+  const { link, catalog } = head.data;
   return (
-    <PageShell eyebrow="Pedido" title={orderNumber}>
-      {!token ? (
-        <Alert tone="info">Abra o acompanhamento no mesmo navegador usado na compra ou use o link enviado na confirmação.</Alert>
-      ) : order.isPending ? (
-        <LoadingState />
-      ) : order.isError ? (
-        <Alert tone="danger">{errorMessage(order.error)}</Alert>
-      ) : (
-        <p>
-          {statusLabel[order.data.status] ?? order.data.status} · {formatMoney(order.data.total, order.data.currency)}
-        </p>
-      )}
-    </PageShell>
+    <>
+      <section className={styles.linkHero}>
+        <div className={`container ${styles.linkHeroInner}`}>
+          <div>
+            <p className={styles.vip}>Acesso exclusivo · {link.label}</p>
+            <h1 className={styles.linkTitle}>
+              {catalog.name}
+              <span className={styles.dot}>.</span>
+            </h1>
+            {catalog.description ? <p className={styles.lead}>{catalog.description}</p> : null}
+            {link.expiresAt ? (
+              <div className={styles.expires}>
+                <span className="mono">Disponível até {new Date(link.expiresAt).toLocaleString('pt-BR')}</span>
+                <Countdown endsAt={link.expiresAt} />
+              </div>
+            ) : null}
+          </div>
+          <CircleBadge text="Seleção por convite · Palace" />
+        </div>
+        <BeltBar />
+      </section>
+      <div className="container">
+        <ProductListing
+          query={query}
+          fetcher={async (q) => (await storefrontApi.link(token, q)).products}
+          queryKey={['link-products', token]}
+          facets={undefined}
+          context={context}
+        />
+      </div>
+    </>
+  );
+}
+
+export function CollectionsPage() {
+  const catalogs = useQuery({ queryKey: storefrontKeys.catalogs, queryFn: storefrontApi.catalogs });
+  const categories = useQuery({ queryKey: storefrontKeys.categories, queryFn: storefrontApi.categories });
+  return (
+    <>
+      <ListingHero eyebrow="Linhas e campanhas" title="Coleções" />
+      <div className={`container ${styles.pad}`}>
+        {catalogs.isPending ? (
+          <LoadingState />
+        ) : catalogs.isError ? (
+          <Alert tone="danger">{errorText(catalogs.error)}</Alert>
+        ) : (
+          <ul className={styles.mosaic}>
+            {catalogs.data.items.map((c, i) => (
+              <li key={c.slug} className={i % 3 === 1 ? styles.mosaicAccent : i % 3 === 2 ? styles.mosaicPaper : undefined}>
+                <Link to={`/catalogo/${c.slug}`}>
+                  <span className="mono">{String(i + 1).padStart(2, '0')} /</span>
+                  <strong>{c.name}</strong>
+                  <span className={styles.mosaicMeta}>
+                    {c.type === 'CAMPAIGN' ? 'Campanha' : c.type === 'GENERAL' ? 'Catálogo geral' : 'Coleção'} · {c.productCount} produtos
+                  </span>
+                  <ArrowUpRightIcon size={22} />
+                </Link>
+              </li>
+            ))}
+            {categories.data?.items.map((c, i) => (
+              <li key={c.id}>
+                <Link to={`/categoria/${c.slug}`}>
+                  <span className="mono">{String(catalogs.data.items.length + i + 1).padStart(2, '0')} /</span>
+                  <strong>{c.name}</strong>
+                  {c.description ? <span className={styles.mosaicMeta}>{c.description}</span> : null}
+                  <ArrowUpRightIcon size={22} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
   );
 }
 
 export function AboutPage() {
-  return <PageShell eyebrow="A marca" title="Disciplina vestida" />;
+  return (
+    <>
+      <section className={styles.about}>
+        <div className={`container ${styles.aboutInner}`}>
+          <div>
+            <p className="eyebrow">A marca</p>
+            <h1 className={styles.aboutTitle}>
+              Nascida <br />
+              no tatame<span className={styles.dot}>.</span>
+            </h1>
+          </div>
+          <div className={styles.aboutText}>
+            <p>
+              A Palace Grappling existe para quem faz do Jiu-Jitsu uma rotina: o treino das seis da manhã, o rola puxado de sexta, o campeonato que chega depois de
+              meses de preparo.
+            </p>
+            <p>
+              Desenhamos kimonos, rash guards, shorts e acessórios pensando no que acontece no tatame: pegada, raspagem, suor, lavagem. Peças que aguentam o
+              uso e continuam com presença fora dele.
+            </p>
+            <p>Lançamos em lotes curtos, ouvimos quem treina e preferimos fazer menos, melhor.</p>
+          </div>
+        </div>
+      </section>
+      <div className="container">
+        <Media slot={media.about} className={styles.aboutMedia} />
+      </div>
+    </>
+  );
 }
 
 export function ContactPage() {
   const store = useQuery({ queryKey: storefrontKeys.store, queryFn: storefrontApi.store });
   return (
-    <PageShell title="Contato">
-      {store.data?.contactEmail ? <a href={`mailto:${store.data.contactEmail}`}>{store.data.contactEmail}</a> : null}
-    </PageShell>
+    <>
+      <ListingHero eyebrow="Atendimento" title="Contato" description="Dúvidas sobre tamanho, pedido ou troca? Fale direto com a equipe." />
+      <div className={`container ${styles.pad}`}>
+        {store.isPending ? (
+          <LoadingState />
+        ) : store.data?.contactEmail || store.data?.contactPhone ? (
+          <ul className={styles.contact}>
+            {store.data.contactEmail ? (
+              <li>
+                <span className="mono">E-mail</span>
+                <a href={`mailto:${store.data.contactEmail}`}>{store.data.contactEmail}</a>
+              </li>
+            ) : null}
+            {store.data.contactPhone ? (
+              <li>
+                <span className="mono">WhatsApp</span>
+                <a href={`https://wa.me/55${store.data.contactPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
+                  {store.data.contactPhone}
+                </a>
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <Alert tone="info">Os canais de contato ainda não foram configurados pela loja.</Alert>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** Texto-modelo: precisa ser revisado pela loja (e, idealmente, por um advogado) antes de publicar. */
+export function PoliciesPage() {
+  const store = useQuery({ queryKey: storefrontKeys.store, queryFn: storefrontApi.store });
+  return (
+    <>
+      <ListingHero eyebrow="Políticas" title="Termos, trocas e privacidade" />
+      <div className={`container ${styles.policies}`}>
+        <Alert tone="warning" title="Texto-modelo">
+          Conteúdo provisório. A loja deve revisar estas políticas antes de vender.
+          {store.data?.termsUrl ? (
+            <>
+              {' '}
+              Versão oficial: <a href={store.data.termsUrl}>{store.data.termsUrl}</a>
+            </>
+          ) : null}
+        </Alert>
+        <section id="compra">
+          <h2>Compra e pagamento</h2>
+          <p>Preços e disponibilidade são confirmados no fechamento do pedido. O pedido é considerado pago somente após a confirmação do provedor de pagamento.</p>
+          <p>Pedidos não pagos dentro do prazo exibido no checkout são cancelados automaticamente e os itens voltam ao estoque.</p>
+        </section>
+        <section id="trocas">
+          <h2>Trocas e devoluções</h2>
+          <p>Compras online podem ser devolvidas em até 7 dias após o recebimento (Código de Defesa do Consumidor, art. 49). Peças devem estar sem uso e com etiqueta.</p>
+        </section>
+        <section id="privacidade">
+          <h2>Privacidade</h2>
+          <p>Usamos nome, telefone, e-mail e endereço apenas para processar e entregar o pedido e para atendimento. Dados de cartão são tratados exclusivamente pelo provedor de pagamento.</p>
+        </section>
+      </div>
+    </>
   );
 }
 
 export function NotFoundPage() {
   return (
-    <PageShell eyebrow="404" title="Página não encontrada">
-      <Link to="/">Voltar para a loja</Link>
-    </PageShell>
+    <section className={styles.linkGate}>
+      <div className={`container ${styles.linkGateInner}`}>
+        <p className="eyebrow">Erro 404</p>
+        <h1 className={styles.linkTitle}>
+          Fora do tatame<span className={styles.dot}>.</span>
+        </h1>
+        <p>A página que você procurou não existe.</p>
+        <Link to="/" className={styles.textLink}>
+          Voltar para a loja <ArrowUpRightIcon size={16} />
+        </Link>
+      </div>
+    </section>
   );
 }

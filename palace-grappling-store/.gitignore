@@ -5,3 +5,8 @@ coverage/
 .env.*
 !.env.example
 *.log
+.shot.mjs
+.crop.mjs
+.overflow.mjs
+test-results/
+playwright-report/

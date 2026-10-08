@@ -85,6 +85,18 @@ export function registerPublicRoutes(router: Router, guards: Record<Access, Requ
   });
 
   route(router, guards, {
+    method: 'get', path: '/public/facets', tag: 'Vitrine', summary: 'Linhas, tamanhos e cores disponíveis para filtros.', access: 'store', headers: [storeHeader],
+    query: z.object({ catalog: slugSchema.optional() }),
+  }, async ({ query, req }) => {
+    const tenant = storeOf(req);
+    const catalogId = query.catalog ? (await catalogs.publicCatalog(tenant.id, query.catalog)).id : undefined;
+    return storefront.facets(tenant.id, catalogId);
+  });
+
+  route(router, guards, { method: 'get', path: '/public/catalogs', tag: 'Vitrine', summary: 'Coleções e campanhas públicas em vigor.', access: 'store', headers: [storeHeader] },
+    async ({ req }) => ({ items: (await catalogs.publicCatalogs(storeOf(req).id)).map(publicCatalog) }));
+
+  route(router, guards, {
     method: 'get', path: '/public/catalogs/{slug}', tag: 'Vitrine', summary: 'Catálogo público compartilhável e seus produtos.', access: 'store', headers: [storeHeader],
     params: z.object({ slug: slugSchema }),
     query: productListQuery,

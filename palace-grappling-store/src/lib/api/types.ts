@@ -70,6 +70,7 @@ export interface PublicCatalog {
   type: 'GENERAL' | 'COLLECTION' | 'CAMPAIGN';
   heroImageUrl: string | null;
   endsAt: string | null;
+  productCount: number;
 }
 
 export type SalesContext = { kind: 'storefront' } | { kind: 'catalog'; slug: string } | { kind: 'link'; token: string };

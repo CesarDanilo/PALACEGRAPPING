@@ -1,6 +1,7 @@
 @import '@fontsource/barlow-condensed/600.css';
 @import '@fontsource/barlow-condensed/800.css';
 @import '@fontsource-variable/inter';
+@import '@fontsource/ibm-plex-mono/500.css';
 @import './tokens.css';
 
 *,
@@ -101,9 +102,22 @@ p {
 }
 
 .eyebrow {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+/* Ponto final em limão nos títulos de impacto (assinatura da marca). */
+.dot::after {
+  content: '.';
+  color: var(--accent);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

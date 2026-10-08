@@ -48,6 +48,10 @@ export class StorefrontService {
     return toPage(items, total, page);
   }
 
+  facets(tenantId: string, catalogId?: string) {
+    return this.uow.repos.products.facets(tenantId, catalogId);
+  }
+
   async product(tenantId: string, slug: string) {
     const product = await this.uow.repos.products.findBySlug(tenantId, slug);
     if (!product || !product.isActive || product.deletedAt) throw notFound('Produto');

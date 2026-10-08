@@ -1,6 +1,12 @@
 import { api } from './client';
 import type { Page, PlacedOrderResponse, PaymentStart, PublicCatalog, PublicCategory, PublicOrder, PublicProduct, Quote, SalesContext, StoreInfo } from './types';
 
+export interface Facets {
+  lines: string[];
+  sizes: string[];
+  colors: { name: string; hex: string | null }[];
+}
+
 export interface ProductQuery {
   page?: number;
   pageSize?: number;
@@ -35,6 +41,8 @@ export const storefrontApi = {
   categories: () => api<{ items: PublicCategory[] }>('/public/categories', { store: true }),
   products: (query: ProductQuery) => api<Page<PublicProduct>>('/public/products', { store: true, query: { ...query } }),
   product: (slug: string) => api<{ product: PublicProduct; related: PublicProduct[] }>(`/public/products/${encodeURIComponent(slug)}`, { store: true }),
+  catalogs: () => api<{ items: PublicCatalog[] }>('/public/catalogs', { store: true }),
+  facets: (catalog?: string) => api<Facets>('/public/facets', { store: true, query: { catalog } }),
   catalog: (slug: string, query: ProductQuery = {}) =>
     api<{ catalog: PublicCatalog; products: Page<PublicProduct> }>(`/public/catalogs/${encodeURIComponent(slug)}`, { store: true, query: { ...query } }),
   link: (token: string, query: ProductQuery = {}) =>
@@ -55,6 +63,8 @@ export const storefrontApi = {
 export const storefrontKeys = {
   store: ['store'] as const,
   categories: ['categories'] as const,
+  catalogs: ['catalogs'] as const,
+  facets: (catalog?: string) => ['facets', catalog ?? null] as const,
   products: (q: ProductQuery) => ['products', q] as const,
   product: (slug: string) => ['product', slug] as const,
   catalog: (slug: string, q: ProductQuery) => ['catalog', slug, q] as const,

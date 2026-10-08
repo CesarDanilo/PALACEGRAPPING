@@ -16,9 +16,12 @@ import {
   ContactPage,
   ExclusiveLinkPage,
   HomePage,
+  MyOrdersPage,
   NotFoundPage,
   OrderTrackingPage,
+  PoliciesPage,
   ProductPage,
+  ShopPage,
 } from '@/pages/store/StorePages';
 
 const adminSection = (path: string, title: string, phase = 'fase 3') => ({ path, element: <AdminPlaceholder title={title} phase={phase} /> });
@@ -28,6 +31,7 @@ export const routes: RouteObject[] = [
     element: <StoreLayout />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'loja', element: <ShopPage /> },
       { path: 'colecoes', element: <CollectionsPage /> },
       { path: 'categoria/:slug', element: <CategoryPage /> },
       { path: 'produto/:slug', element: <ProductPage /> },
@@ -37,6 +41,8 @@ export const routes: RouteObject[] = [
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'checkout/sucesso', element: <CheckoutResultPage /> },
       { path: 'pedido/:orderNumber', element: <OrderTrackingPage /> },
+      { path: 'pedidos', element: <MyOrdersPage /> },
+      { path: 'politicas', element: <PoliciesPage /> },
       { path: 'sobre', element: <AboutPage /> },
       { path: 'contato', element: <ContactPage /> },
       { path: '*', element: <NotFoundPage /> },

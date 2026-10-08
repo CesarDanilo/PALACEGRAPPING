@@ -1,0 +1,216 @@
+.pad {
+  padding-top: var(--space-8);
+}
+.dot {
+  color: var(--accent);
+}
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Link exclusivo ── */
+.linkHero {
+  background: radial-gradient(80% 120% at 85% 10%, var(--color-graphite-800), var(--surface-page) 60%);
+}
+.linkHeroInner {
+  display: grid;
+  gap: var(--space-8);
+  align-items: center;
+  padding-block: var(--space-16);
+}
+@media (min-width: 768px) {
+  .linkHeroInner {
+    grid-template-columns: 1fr auto;
+  }
+}
+.vip {
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: var(--space-4);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+.linkTitle {
+  font-size: var(--display-lg);
+}
+.lead {
+  max-width: 50ch;
+  margin-top: var(--space-4);
+  color: var(--text-secondary);
+}
+.expires {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.linkGate {
+  padding-block: var(--space-20);
+}
+.linkGateInner {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+}
+.linkGateInner p {
+  color: var(--text-secondary);
+}
+
+/* ── Coleções (mosaico) ── */
+.mosaic {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 768px) {
+  .mosaic {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .mosaic {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .mosaic li:first-child {
+    grid-row: span 2;
+  }
+}
+.mosaic a {
+  position: relative;
+  display: grid;
+  align-content: end;
+  gap: var(--space-2);
+  min-height: 14rem;
+  height: 100%;
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--border-strong);
+  text-decoration: none;
+}
+.mosaic a > svg {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+}
+.mosaic a:hover {
+  border-color: var(--accent);
+}
+.mosaic strong {
+  font-family: var(--font-display);
+  font-size: var(--display-sm);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-tight);
+  text-transform: uppercase;
+}
+.mosaic .mono {
+  color: var(--accent);
+  font-size: var(--text-sm);
+}
+.mosaicMeta {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.mosaicAccent a {
+  background: var(--surface-raised);
+}
+.mosaicPaper a {
+  background: var(--surface-paper);
+  color: var(--text-on-paper);
+  border-color: var(--surface-paper);
+}
+.mosaicPaper .mono {
+  color: var(--text-on-paper-muted);
+}
+.mosaicPaper .mosaicMeta {
+  color: var(--text-on-paper-muted);
+}
+
+/* ── Sobre ── */
+.about {
+  padding-block: var(--space-16);
+}
+.aboutInner {
+  display: grid;
+  gap: var(--space-10);
+}
+@media (min-width: 1024px) {
+  .aboutInner {
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
+}
+.aboutTitle {
+  font-size: var(--display-xl);
+  line-height: 0.86;
+}
+.aboutText {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 56ch;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+.aboutMedia {
+  aspect-ratio: 21 / 9;
+  min-height: 280px;
+}
+
+/* ── Contato ── */
+.contact {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.contact li {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+}
+.contact .mono {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.contact a {
+  font-family: var(--font-display);
+  font-size: var(--display-sm);
+  font-weight: var(--weight-display);
+  text-decoration: none;
+}
+.contact a:hover {
+  color: var(--accent);
+}
+
+/* ── Políticas ── */
+.policies {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 72ch;
+  padding-top: var(--space-8);
+}
+.policies h2 {
+  margin-bottom: var(--space-3);
+  font-size: var(--display-sm);
+}
+.policies p {
+  color: var(--text-secondary);
+}
+.policies p + p {
+  margin-top: var(--space-3);
+}

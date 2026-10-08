@@ -91,6 +91,29 @@ const variantData = (v: Partial<VariantWrite>) => {
   };
 };
 
+// Ordena tamanhos de forma natural: A0 < A1 < … , PP < P < M < G < GG < XG, números crescentes.
+const LETTER_ORDER = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'];
+function sortSizes(sizes: string[]): string[] {
+  const rank = (s: string) => {
+    const letter = LETTER_ORDER.indexOf(s.toUpperCase());
+    if (letter >= 0) return [1, letter] as const;
+    const match = /^([A-Z]*)(\d+)$/i.exec(s);
+    if (match) return [match[1] ? 0 : 2, Number(match[2]), match[1]!] as const;
+    return [3, 0, s] as const;
+  };
+  return sizes.sort((a, b) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    for (let i = 0; i < Math.max(ra.length, rb.length); i++) {
+      const x = ra[i] ?? '';
+      const y = rb[i] ?? '';
+      if (x < y) return -1;
+      if (x > y) return 1;
+    }
+    return 0;
+  });
+}
+
 export const productRepository = (db: Db): ProductRepository => ({
   async list(tenantId, filter, page) {
     const where = productWhere(tenantId, filter);
@@ -153,6 +176,30 @@ export const productRepository = (db: Db): ProductRepository => ({
   async softDelete(tenantId, id, at) {
     const { count } = await db.product.updateMany({ where: { tenantId, id, deletedAt: null }, data: { deletedAt: at, isActive: false } });
     return count > 0;
+  },
+  async facets(tenantId, catalogId) {
+    const productWhere: Prisma.ProductWhereInput = {
+      tenantId,
+      isActive: true,
+      deletedAt: null,
+      ...(catalogId ? { catalogProducts: { some: { catalogId } } } : {}),
+    };
+    const [variants, lines] = await Promise.all([
+      db.productVariant.findMany({
+        where: { tenantId, isActive: true, product: productWhere },
+        select: { size: true, color: true, colorHex: true },
+        distinct: ['size', 'color'],
+      }),
+      db.product.findMany({ where: { ...productWhere, line: { not: null } }, select: { line: true }, distinct: ['line'] }),
+    ]);
+    const sizes = [...new Set(variants.map((v) => v.size).filter((s): s is string => Boolean(s)))];
+    const colors = new Map<string, string | null>();
+    for (const v of variants) if (v.color && !colors.has(v.color)) colors.set(v.color, v.colorHex);
+    return {
+      lines: lines.map((l) => l.line!).sort(),
+      sizes: sortSizes(sizes),
+      colors: [...colors].map(([name, hex]) => ({ name, hex })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+    };
   },
   async existingIds(tenantId, ids) {
     const rows = await db.product.findMany({ where: { tenantId, id: { in: ids }, deletedAt: null }, select: { id: true } });

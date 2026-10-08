@@ -56,3 +56,8 @@ export function unavailableSizes(product: Pick<PublicProduct, 'variants'>, color
   }
   return result;
 }
+
+/** Rótulo legível da variante, ex.: "A2 / Preto" (mesmo formato do snapshot do pedido). */
+export function variantLabelOf(variant: Pick<PublicVariant, 'size' | 'color'>): string {
+  return [variant.size, variant.color].filter(Boolean).join(' / ') || 'Único';
+}

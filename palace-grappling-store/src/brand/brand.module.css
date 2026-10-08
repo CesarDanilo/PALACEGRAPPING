@@ -1,0 +1,101 @@
+.monogram {
+  flex: none;
+  color: var(--text-primary);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-primary);
+}
+.wordmark {
+  display: grid;
+  line-height: 1;
+}
+.word {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+}
+.sub {
+  margin-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.42em;
+  color: var(--text-secondary);
+}
+
+.belt {
+  position: relative;
+  display: block;
+  height: 8px;
+  width: 100%;
+  background: var(--text-primary);
+}
+.beltTip {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: clamp(48px, 18%, 120px);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12%;
+  padding-right: 8%;
+  background: var(--accent);
+}
+.beltTip i {
+  width: 3px;
+  background: var(--color-black);
+}
+
+.badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+.badgePaper {
+  background: var(--surface-paper);
+  color: var(--text-on-paper);
+}
+.badgePaper .badgeCenter :global(svg) {
+  color: var(--text-on-paper);
+}
+.badgeRing {
+  position: absolute;
+  inset: 0;
+  fill: currentColor;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  animation: spin 24s linear infinite;
+}
+.badgeCenter {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .badgeRing {
+    animation: none;
+  }
+}
+
+.slashes {
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}

@@ -22,3 +22,10 @@ export function saveTrackingToken(orderNumber: string, token: string) {
 export function readTrackingToken(orderNumber: string): string | null {
   return readAll()[orderNumber] ?? null;
 }
+
+/** Pedidos acompanhados neste navegador, do mais recente ao mais antigo. */
+export function listTrackedOrders(): { number: string; token: string }[] {
+  return Object.entries(readAll())
+    .map(([number, token]) => ({ number, token }))
+    .reverse();
+}

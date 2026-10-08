@@ -170,3 +170,64 @@
 .badge_out {
   color: var(--text-muted);
 }
+
+/* ── Modal ── */
+.modal {
+  width: min(640px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  padding: 0;
+  border: var(--border-width) solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+.modalBody {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.modalTitle {
+  font-size: var(--display-sm);
+}
+.modalClose {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: var(--border-width) solid var(--border-strong);
+  background: none;
+  cursor: pointer;
+}
+.modalClose:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: calc(100vw - 2rem);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-white);
+  color: var(--color-black);
+  border-left: 4px solid var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.toast a {
+  color: inherit;
+}

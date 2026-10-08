@@ -1,10 +1,9 @@
 /*
  * Design tokens da Palace Grappling.
  *
- * STATUS: provisórios. Derivados da paleta definida no briefing (preto profundo,
- * branco, grafite, verde-limão). Serão revisados após a análise das três
- * imagens de referência visual. Componentes devem usar apenas estes tokens,
- * nunca valores literais, para que a revisão aconteça em um único lugar.
+ * Direção: "tatame à noite" (ver docs/DIRECAO-VISUAL.md). Base preta, seções
+ * em papel off-white para manifestos e lançamentos, verde-limão só como acento.
+ * Componentes usam apenas estes tokens, nunca valores literais.
  */
 
 :root {
@@ -19,6 +18,8 @@
   --color-graphite-300: #9a9a9a;
   --color-white: #f7f7f5;
   --color-pure-white: #ffffff;
+  --color-paper: #ecebe6;
+  --color-paper-shade: #d9d8d1;
 
   /* ── Cor: destaque (uso moderado: CTAs, indicadores, promoções, foco) ── */
   --color-lime-500: #c6ff1a;
@@ -47,10 +48,15 @@
   --accent-pressed: var(--color-lime-600);
   --on-accent: var(--color-black);
   --price-sale: var(--color-lime-500);
+  --surface-paper: var(--color-paper);
+  --text-on-paper: var(--color-black);
+  --text-on-paper-muted: #55554f;
+  --overlay-scrim: linear-gradient(180deg, transparent 40%, rgba(7, 7, 7, 0.92) 100%);
 
   /* ── Tipografia ── */
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

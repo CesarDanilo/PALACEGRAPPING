@@ -73,7 +73,7 @@ async function main() {
       data: {
         slug: storeSlug,
         name: storeName,
-        settings: { create: { shippingFlatRate: '29.90', freeShippingThreshold: '499.00', contactEmail: 'contato@example.com' } },
+        settings: { create: { shippingFlatRate: '29.90', freeShippingThreshold: '499.00', contactEmail: 'contato@example.com', contactPhone: '(11) 90000-0000' } },
         financeCategories: {
           create: [
             { name: 'Vendas', kind: 'INCOME', isSystem: true },
@@ -164,9 +164,29 @@ async function main() {
     create: { tenantId: tenant.id, name: 'No-Gi Drop', slug: 'no-gi-drop', type: 'CAMPAIGN', description: 'Seleção da linha No-Gi.', isPublic: false },
     update: {},
   });
+  const gi = await prisma.catalog.upsert({
+    where: { tenantId_slug: { tenantId: tenant.id, slug: 'linha-gi-2026' } },
+    create: { tenantId: tenant.id, name: 'Linha Gi 2026', slug: 'linha-gi-2026', type: 'COLLECTION', description: 'Kimonos e faixas da temporada.' },
+    update: {},
+  });
+  // Campanha pública com data de fim: demonstra a contagem regressiva real da vitrine.
+  const drop = await prisma.catalog.upsert({
+    where: { tenantId_slug: { tenantId: tenant.id, slug: 'drop-competicao' } },
+    create: {
+      tenantId: tenant.id,
+      name: 'Drop Competição',
+      slug: 'drop-competicao',
+      type: 'CAMPAIGN',
+      description: 'Lote curto para a temporada de campeonatos. Quando acabar, acabou.',
+      endsAt: new Date(Date.now() + 14 * 86_400_000),
+    },
+    update: {},
+  });
   for (const [catalog, ids] of [
     [general, productIds],
     [campaign, productIds.slice(2, 6)],
+    [gi, [productIds[0]!, productIds[1]!, productIds[6]!]],
+    [drop, [productIds[0]!, productIds[2]!, productIds[4]!]],
   ] as const) {
     for (const [position, productId] of ids.entries()) {
       await prisma.catalogProduct.upsert({

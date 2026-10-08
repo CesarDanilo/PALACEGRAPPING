@@ -105,6 +105,12 @@ export class CatalogService {
     return catalog;
   }
 
+  /** Catálogos públicos abertos agora (vitrine de coleções e campanhas). */
+  async publicCatalogs(tenantId: string) {
+    const now = this.clock.now();
+    return (await this.uow.repos.catalogs.list(tenantId)).filter((c) => c.isPublic && catalogIsOpen(c, now));
+  }
+
   /** Resolve um token de link exclusivo. O token identifica a loja e o catálogo, nada além disso. */
   async resolveLink(token: string) {
     const link = await this.uow.repos.catalogLinks.findByToken(token);
