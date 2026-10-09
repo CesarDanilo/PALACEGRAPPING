@@ -107,6 +107,20 @@ describe.skipIf(!hasDatabase)('catálogos e links exclusivos', () => {
     expect(pub.body.products.items.map((p: { slug: string }) => p.slug)).toEqual(['p2']);
   });
 
+  it('lista só catálogos públicos em vigor e expõe filtros da vitrine', async () => {
+    await createCatalog({ productIds: [p1.productId] });
+    await h.api.post('/api/v1/catalogs').set(asTenant(a)).send({ name: 'Privado', slug: 'privado', isPublic: false });
+    await h.api.post('/api/v1/catalogs').set(asTenant(a)).send({ name: 'Futuro', slug: 'futuro', startsAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const list = await h.api.get('/api/v1/public/catalogs').set(asStore(a));
+    expect(list.body.items.map((c: { slug: string }) => c.slug)).toEqual(['campanha']);
+    expect(list.body.items[0]).toMatchObject({ productCount: 1 });
+    expect(list.body.items[0]).not.toHaveProperty('id');
+
+    const facets = await h.api.get('/api/v1/public/facets').set(asStore(a));
+    expect(facets.body).toEqual({ lines: [], sizes: ['M'], colors: [{ name: 'Preto', hex: null }] });
+    expect((await h.api.get('/api/v1/public/facets').set(asStore(a)).query({ catalog: 'privado' })).status).toBe(404);
+  });
+
   it('catálogo privado não abre por slug, apenas por link', async () => {
     const catalog = await createCatalog({ isPublic: false, productIds: [p1.productId] });
     expect((await h.api.get('/api/v1/public/catalogs/campanha').set(asStore(a))).status).toBe(404);

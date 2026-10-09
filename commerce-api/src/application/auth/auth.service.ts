@@ -17,6 +17,9 @@ export interface IssuedSession {
   refreshExpiresAt: Date;
 }
 
+/** Tolerância para renovações concorrentes com o mesmo refresh token. */
+export const REUSE_GRACE_MS = 20_000;
+
 // Hash calculado uma vez para equalizar o tempo de resposta quando o e-mail não existe.
 let dummyHash: Promise<string> | null = null;
 
@@ -52,14 +55,22 @@ export class AuthService {
     const record = await refreshTokens.findByHash(sha256(refreshToken));
     if (!record) throw unauthenticated('Sessão inválida');
     if (record.revokedAt || record.expiresAt <= now) throw unauthenticated('Sessão expirada');
-    if (record.rotatedAt) {
+    // Janela curta de tolerância: duas abas (ou requisições simultâneas) renovando com o
+    // mesmo cookie não derrubam a sessão. Fora dela, reuso indica roubo e revoga a família.
+    const withinGrace = (at: Date | null) => at != null && now.getTime() - at.getTime() <= REUSE_GRACE_MS;
+    if (record.rotatedAt && !withinGrace(record.rotatedAt)) {
       await refreshTokens.revokeFamily(record.familyId, now);
       throw unauthenticated('Sessão reutilizada; faça login novamente');
     }
-    const claimed = await refreshTokens.markRotated(record.id, now);
-    if (!claimed) {
-      await refreshTokens.revokeFamily(record.familyId, now);
-      throw unauthenticated('Sessão reutilizada; faça login novamente');
+    if (!record.rotatedAt) {
+      const claimed = await refreshTokens.markRotated(record.id, now);
+      if (!claimed) {
+        const latest = await refreshTokens.findByHash(sha256(refreshToken));
+        if (!latest || latest.revokedAt || !withinGrace(latest.rotatedAt)) {
+          await refreshTokens.revokeFamily(record.familyId, now);
+          throw unauthenticated('Sessão reutilizada; faça login novamente');
+        }
+      }
     }
     const user = await users.findById(record.userId);
     if (!user || !user.isActive) throw unauthenticated('Usuário inativo');

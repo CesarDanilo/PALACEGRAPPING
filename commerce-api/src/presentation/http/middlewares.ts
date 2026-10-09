@@ -89,8 +89,12 @@ export function userOf(req: Request) {
 const limitHandler: RequestHandler = (_req, _res, next: NextFunction) =>
   next(new AppError('TOO_MANY_REQUESTS', 'Muitas requisições; tente novamente em instantes'));
 
-export const loginLimiter = (enabled: boolean) =>
-  rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, skip: () => !enabled, handler: limitHandler });
+export const loginLimiter = (enabled: boolean, limit = 10) =>
+  rateLimit({ windowMs: 15 * 60_000, limit, standardHeaders: 'draft-8', legacyHeaders: false, skip: () => !enabled, handler: limitHandler });
+
+/** Renovação de sessão: cada recarga de página do painel chama /auth/refresh. */
+export const refreshLimiter = (enabled: boolean) =>
+  rateLimit({ windowMs: 15 * 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false, skip: () => !enabled, handler: limitHandler });
 
 export const checkoutLimiter = (enabled: boolean) =>
   rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, skip: () => !enabled, handler: limitHandler });

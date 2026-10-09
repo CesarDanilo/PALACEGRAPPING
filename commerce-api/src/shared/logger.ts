@@ -1,6 +1,17 @@
+import { createRequire } from 'node:module';
 import { pino, type Logger } from 'pino';
 
 export type { Logger };
+
+/** pino-pretty é dependência de desenvolvimento: na imagem de produção os logs saem em JSON. */
+function prettyAvailable(): boolean {
+  try {
+    createRequire(import.meta.url).resolve('pino-pretty');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function createLogger(level: string, pretty: boolean): Logger {
   return pino({
@@ -18,6 +29,6 @@ export function createLogger(level: string, pretty: boolean): Logger {
       ],
       censor: '[redacted]',
     },
-    ...(pretty ? { transport: { target: 'pino-pretty', options: { singleLine: true } } } : {}),
+    ...(pretty && prettyAvailable() ? { transport: { target: 'pino-pretty', options: { singleLine: true } } } : {}),
   });
 }

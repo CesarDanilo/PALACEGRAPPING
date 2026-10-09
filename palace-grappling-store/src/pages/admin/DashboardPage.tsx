@@ -100,7 +100,7 @@ export function DashboardPage() {
             <ul className={styles.activity}>
               {d.activity.map((a) => (
                 <li key={a.id}>
-                  <Link to="/admin/pedidos">Pedido {a.orderNumber}</Link> {statusLabel[a.toStatus] ?? a.toStatus}
+                  <Link to={`/admin/pedidos?q=${encodeURIComponent(a.orderNumber)}`}>Pedido {a.orderNumber}</Link> {statusLabel[a.toStatus] ?? a.toStatus}
                   <time dateTime={a.createdAt}> · {new Date(a.createdAt).toLocaleString('pt-BR')}</time>
                 </li>
               ))}

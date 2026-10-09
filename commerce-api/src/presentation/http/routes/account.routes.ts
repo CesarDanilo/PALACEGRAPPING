@@ -2,7 +2,7 @@ import type { CookieOptions, Request, RequestHandler, Router } from 'express';
 import { z } from 'zod';
 import { ROLES } from '../../../domain/access/permissions.js';
 import type { Container } from '../../../container.js';
-import { ctxOf, loginLimiter, userOf } from '../middlewares.js';
+import { ctxOf, loginLimiter, refreshLimiter, userOf } from '../middlewares.js';
 import { centsSchema, route, slugSchema, type Access } from '../route-kit.js';
 
 const REFRESH_COOKIE = 'rt';
@@ -24,7 +24,7 @@ export function registerAccountRoutes(router: Router, guards: Record<Access, Req
     tag: 'Autenticação',
     summary: 'Login administrativo. Devolve access token e grava o refresh token em cookie httpOnly.',
     access: 'public',
-    before: [loginLimiter(c.env.NODE_ENV !== 'test')],
+    before: [loginLimiter(c.env.NODE_ENV !== 'test', c.env.LOGIN_RATE_LIMIT)],
     body: z.object({ email: z.email().max(254), password: z.string().min(1).max(200) }),
   }, async ({ body, req, res }) => {
     const { session, profile } = await auth.login(body.email, body.password, meta(req));
@@ -38,7 +38,7 @@ export function registerAccountRoutes(router: Router, guards: Record<Access, Req
     tag: 'Autenticação',
     summary: 'Renova o access token com rotação do refresh token (cookie).',
     access: 'public',
-    before: [loginLimiter(c.env.NODE_ENV !== 'test')],
+    before: [refreshLimiter(c.env.NODE_ENV !== 'test')],
   }, async ({ req, res }) => {
     const token = (req.cookies as Record<string, string | undefined>)[REFRESH_COOKIE];
     if (!token) {

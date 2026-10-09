@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { ListingHero } from '@/components/store/ProductListing';
@@ -24,13 +24,15 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  // Depois do pedido criado o carrinho é limpo; não redirecionar de volta ao carrinho vazio.
+  const placed = useRef(false);
   const { register, handleSubmit, formState, watch } = useForm<CheckoutForm, unknown, CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: checkoutDefaults,
   });
   const method = watch('paymentMethod');
 
-  if (!state.items.length) return <Navigate to="/carrinho" replace />;
+  if (!state.items.length && !placed.current) return <Navigate to="/carrinho" replace />;
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
@@ -64,6 +66,7 @@ export function CheckoutPage() {
       );
       saveTrackingToken(result.order.number, result.trackingToken);
       clearCheckoutAttempt();
+      placed.current = true;
       cart.clear();
       if (result.payment?.status === 'READY' && result.payment.checkoutUrl) {
         // Pagamento no ambiente seguro do provedor; a confirmação chega por webhook.

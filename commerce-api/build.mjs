@@ -15,6 +15,6 @@ await build({
   sourcemap: true,
   external: Object.keys(pkg.dependencies),
   banner: {
-    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+    js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);",
   },
 });

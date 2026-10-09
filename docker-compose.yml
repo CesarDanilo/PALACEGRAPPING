@@ -34,6 +34,9 @@ services:
       DATABASE_URL: postgresql://commerce:commerce@postgres:5432/commerce
       DIRECT_URL: postgresql://commerce:commerce@postgres:5432/commerce
       PORT: "3350"
+      CORS_ORIGINS: http://localhost:8090
+      STOREFRONT_URL: http://localhost:8090
+      EXPIRATION_SWEEP_SECONDS: "60"
     ports:
       - "127.0.0.1:3350:3350"
     depends_on:

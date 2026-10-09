@@ -23,14 +23,15 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
-  if (status === 'authenticated') return <Navigate to="/admin" replace />;
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const target = fromState?.startsWith('/admin') && fromState !== '/admin/login' ? fromState : '/admin';
+  if (status === 'authenticated') return <Navigate to={target} replace />;
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     try {
       await login(values.email, values.password);
-      const from = (location.state as { from?: string } | null)?.from;
-      navigate(from?.startsWith('/admin') ? from : '/admin', { replace: true });
+      navigate(target, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Não foi possível entrar agora.');
     }

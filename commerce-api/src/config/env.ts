@@ -32,6 +32,8 @@ const schema = z
     MERCADOPAGO_WEBHOOK_SECRET: optional,
     STOREFRONT_URL: z.url().default('http://localhost:5190'),
 
+    /** Tentativas de login por IP a cada 15 minutos. */
+    LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
     EXPIRATION_SWEEP_SECONDS: z.coerce.number().int().min(0).default(60),
   })
   .superRefine((env, ctx) => {

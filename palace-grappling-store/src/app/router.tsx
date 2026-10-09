@@ -2,9 +2,11 @@ import { createBrowserRouter, Outlet, type RouteObject } from 'react-router';
 import { AdminSessionProvider } from '@/features/admin-auth/AdminSession';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { StoreLayout } from '@/layouts/StoreLayout';
-import { AdminPlaceholder } from '@/pages/admin/AdminPlaceholder';
+import { CatalogsPage, CategoriesPage, InventoryPage, LinksPage } from '@/pages/admin/CatalogAdminPages';
 import { DashboardPage } from '@/pages/admin/DashboardPage';
 import { LoginPage } from '@/pages/admin/LoginPage';
+import { CustomerDetailPage, CustomersPage, EntriesPage, FinancePage, OrderDetailPage, OrdersPage, ReportsPage, SettingsPage } from '@/pages/admin/OperationsPages';
+import { ProductEditorPage, ProductsPage } from '@/pages/admin/ProductsPages';
 import {
   AboutPage,
   CartPage,
@@ -23,8 +25,6 @@ import {
   ProductPage,
   ShopPage,
 } from '@/pages/store/StorePages';
-
-const adminSection = (path: string, title: string, phase = 'fase 3') => ({ path, element: <AdminPlaceholder title={title} phase={phase} /> });
 
 export const routes: RouteObject[] = [
   {
@@ -61,20 +61,22 @@ export const routes: RouteObject[] = [
         element: <AdminLayout />,
         children: [
           { index: true, element: <DashboardPage /> },
-          adminSection('produtos', 'Produtos'),
-          adminSection('produtos/novo', 'Novo produto'),
-          adminSection('categorias', 'Categorias'),
-          adminSection('estoque', 'Estoque'),
-          adminSection('pedidos', 'Pedidos', 'fase 4'),
-          adminSection('pedidos/:id', 'Pedido', 'fase 4'),
-          adminSection('clientes', 'Clientes', 'fase 4'),
-          adminSection('catalogos', 'Catálogos'),
-          adminSection('links', 'Links exclusivos'),
-          adminSection('financeiro', 'Financeiro', 'fase 4'),
-          adminSection('financeiro/receitas', 'Receitas', 'fase 4'),
-          adminSection('financeiro/despesas', 'Despesas', 'fase 4'),
-          adminSection('relatorios', 'Relatórios', 'fase 4'),
-          adminSection('configuracoes', 'Configurações'),
+          { path: 'produtos', element: <ProductsPage /> },
+          { path: 'produtos/novo', element: <ProductEditorPage /> },
+          { path: 'produtos/:id', element: <ProductEditorPage /> },
+          { path: 'categorias', element: <CategoriesPage /> },
+          { path: 'estoque', element: <InventoryPage /> },
+          { path: 'pedidos', element: <OrdersPage /> },
+          { path: 'pedidos/:id', element: <OrderDetailPage /> },
+          { path: 'clientes', element: <CustomersPage /> },
+          { path: 'clientes/:id', element: <CustomerDetailPage /> },
+          { path: 'catalogos', element: <CatalogsPage /> },
+          { path: 'links', element: <LinksPage /> },
+          { path: 'financeiro', element: <FinancePage /> },
+          { path: 'financeiro/receitas', element: <EntriesPage key="income" kind="INCOME" /> },
+          { path: 'financeiro/despesas', element: <EntriesPage key="expense" kind="EXPENSE" /> },
+          { path: 'relatorios', element: <ReportsPage /> },
+          { path: 'configuracoes', element: <SettingsPage /> },
         ],
       },
     ],

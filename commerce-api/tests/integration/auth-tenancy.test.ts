@@ -36,10 +36,14 @@ describe.skipIf(!hasDatabase)('autenticação', () => {
     const second = cookieOf(refreshed);
     expect(second).not.toBe(first);
 
+    // Reuso imediato (outra aba) é tolerado; reuso depois da janela revoga a família.
+    expect((await h.api.post('/api/v1/auth/refresh').set('Cookie', first)).status).toBe(200);
+    h.clock.set(new Date(Date.now() + 25_000));
     const reuse = await h.api.post('/api/v1/auth/refresh').set('Cookie', first);
     expect(reuse.status).toBe(401);
     // A família inteira foi revogada: o token novo também deixa de valer.
     expect((await h.api.post('/api/v1/auth/refresh').set('Cookie', second)).status).toBe(401);
+    h.clock.reset();
   });
 
   it('logout revoga a sessão', async () => {
