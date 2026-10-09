@@ -17,3 +17,4 @@ playwright-report/
 .audit.mjs
 .why.mjs
 .shots.mjs
+.session-check.mjs

@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://palace-commerce-api.onrender.com/api/:path*"
+      "destination": "https://18-228-23-43.sslip.io/api/:path*"
     },
     {
       "source": "/(.*)",
