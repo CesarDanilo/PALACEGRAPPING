@@ -2,7 +2,7 @@
 
 Este repositório contém o **frontend** da Palace Grappling: a loja e o painel administrativo, em [`palace-grappling-store/`](palace-grappling-store/README.md) (React, Vite).
 
-O **backend** (`commerce-api`) vive num repositório próprio: uma API comercial genérica e multi-tenant em Node, Express, Prisma e PostgreSQL/Supabase. A loja fala com ela apenas por HTTP, em `/api/v1`.
+O **backend** (`commerce-api`) vive no repositório [palace-commerce-api](https://github.com/CesarDanilo/palace-commerce-api): uma API comercial genérica e multi-tenant em Node, Express, Prisma e PostgreSQL/Supabase. A loja fala com ela apenas por HTTP, em `/api/v1`.
 
 ## Rodar localmente
 
