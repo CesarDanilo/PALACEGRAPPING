@@ -159,7 +159,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
           </Alert>
         ) : data && data.items.length ? (
           <>
-            <ProductGrid products={data.items} context={context} />
+            <ProductGrid products={data.items} context={context} eagerCount={4} />
             {data.totalPages > 1 ? <Pagination page={data.page} totalPages={data.totalPages} onChange={(p) => set('pagina', p === 1 ? null : String(p))} /> : null}
           </>
         ) : (

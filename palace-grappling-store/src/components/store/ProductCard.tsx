@@ -13,7 +13,7 @@ import styles from './store.module.css';
  * O "+" só adiciona direto quando existe uma única variante disponível; havendo
  * escolha de tamanho/cor, leva à página do produto (seleção obrigatória).
  */
-export function ProductCard({ product, context, index }: { product: PublicProduct; context?: SalesContext; index?: number }) {
+export function ProductCard({ product, context, index, eager }: { product: PublicProduct; context?: SalesContext; index?: number; eager?: boolean }) {
   const available = product.variants.filter((v) => v.availability !== 'out');
   const single = product.variants.length === 1 && available.length === 1 ? available[0] : null;
   const href = `/produto/${product.slug}`;
@@ -23,7 +23,7 @@ export function ProductCard({ product, context, index }: { product: PublicProduc
   return (
     <article className={styles.card}>
       <Link to={href} state={context ? { context } : undefined} className={styles.cardLink}>
-        <ProductImage product={product} className={styles.cardImage} />
+        <ProductImage product={product} className={styles.cardImage} eager={eager} />
         <span className={styles.cardMeta}>
           {index != null ? <span className={styles.cardIndex}>{String(index + 1).padStart(2, '0')}</span> : null}
           <span className={styles.cardName}>{product.name}</span>
@@ -63,12 +63,13 @@ export function ProductCard({ product, context, index }: { product: PublicProduc
   );
 }
 
-export function ProductGrid({ products, context, numbered, columns = 4 }: { products: PublicProduct[]; context?: SalesContext; numbered?: boolean; columns?: 3 | 4 }) {
+/** `eagerCount`: cards da primeira linha carregam a foto sem esperar a rolagem (listagens no topo da página). */
+export function ProductGrid({ products, context, numbered, columns = 4, eagerCount = 0 }: { products: PublicProduct[]; context?: SalesContext; numbered?: boolean; columns?: 3 | 4; eagerCount?: number }) {
   return (
     <ul className={`${styles.grid} ${columns === 3 ? styles.grid3 : ''}`}>
       {products.map((p, i) => (
         <li key={p.id}>
-          <ProductCard product={p} context={context} index={numbered ? i : undefined} />
+          <ProductCard product={p} context={context} index={numbered ? i : undefined} eager={i < eagerCount} />
         </li>
       ))}
     </ul>
