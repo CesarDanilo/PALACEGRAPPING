@@ -75,7 +75,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
           {data ? `${data.total} ${data.total === 1 ? 'produto' : 'produtos'}` : ' '}
         </p>
         <label className={styles.sort}>
-          <span className="mono">Ordenar</span>
+          <span className="label">Ordenar</span>
           <select value={query.sort} onChange={(e) => set('ordem', e.target.value === 'relevance' ? null : e.target.value)}>
             {SORTS.map((s) => (
               <option key={s.value} value={s.value}>
@@ -89,7 +89,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
       <div id="filtros" className={`${styles.filters} ${filtersOpen ? styles.filtersOpen : ''}`}>
         {categories && !hide.includes('category') && categories.length ? (
           <fieldset className={styles.group}>
-            <legend className="mono">Categoria</legend>
+            <legend className="label">Categoria</legend>
             {categories.map((c) => (
               <button key={c.id} type="button" className={styles.chip} aria-pressed={query.category === c.slug} onClick={() => toggle('categoria', c.slug)}>
                 {c.name}
@@ -99,7 +99,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
         ) : null}
         {facets?.lines.length && !hide.includes('line') ? (
           <fieldset className={styles.group}>
-            <legend className="mono">Linha</legend>
+            <legend className="label">Linha</legend>
             {facets.lines.map((l) => (
               <button key={l} type="button" className={styles.chip} aria-pressed={query.line === l} onClick={() => toggle('linha', l)}>
                 {lineLabel(l)}
@@ -109,7 +109,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
         ) : null}
         {facets?.sizes.length ? (
           <fieldset className={styles.group}>
-            <legend className="mono">Tamanho</legend>
+            <legend className="label">Tamanho</legend>
             {facets.sizes.map((s) => (
               <button key={s} type="button" className={`${styles.chip} ${styles.size}`} aria-pressed={query.size === s} onClick={() => toggle('tamanho', s)}>
                 {s}
@@ -119,7 +119,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
         ) : null}
         {facets?.colors.length ? (
           <fieldset className={styles.group}>
-            <legend className="mono">Cor</legend>
+            <legend className="label">Cor</legend>
             {facets.colors.map((c) => (
               <button key={c.name} type="button" className={styles.chip} aria-pressed={query.color === c.name} onClick={() => toggle('cor', c.name)}>
                 <span className={styles.swatch} style={{ background: c.hex ?? 'transparent' }} aria-hidden="true" />
@@ -129,7 +129,7 @@ export function ProductListing({ query, fetcher, queryKey, facets, categories, c
           </fieldset>
         ) : null}
         <fieldset className={styles.group}>
-          <legend className="mono">Disponibilidade</legend>
+          <legend className="label">Disponibilidade</legend>
           <button type="button" className={styles.chip} aria-pressed={query.inStock === true} onClick={() => toggle('disponivel', '1')}>
             Só em estoque
           </button>
