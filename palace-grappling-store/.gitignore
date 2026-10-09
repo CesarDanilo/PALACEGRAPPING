@@ -10,3 +10,5 @@ coverage/
 .overflow.mjs
 test-results/
 playwright-report/
+.admin.mjs
+.order.mjs
