@@ -7,6 +7,7 @@ import { ToastHost } from '@/components/ui/Toast';
 import { useCartCount } from '@/features/cart/cart-store';
 import { storefrontApi, storefrontKeys } from '@/lib/api/storefront';
 import styles from './StoreLayout.module.css';
+import { brand } from '@/config/env';
 
 const nav = [
   { to: '/loja?linha=gi', label: 'Gi' },
@@ -84,7 +85,7 @@ export function StoreLayout() {
           >
             <MenuIcon />
           </button>
-          <Link to="/" className={styles.brand} aria-label="Palace Grappling, página inicial">
+          <Link to="/" className={styles.brand} aria-label={`${brand.name}, página inicial`}>
             <Logo />
           </Link>
           <nav aria-label="Principal" className={styles.navDesktop}>
@@ -198,7 +199,7 @@ export function StoreLayout() {
           </div>
           <BeltBar />
           <div className={styles.footerBottom}>
-            <span>© {new Date().getFullYear()} Palace Grappling</span>
+            <span>© {new Date().getFullYear()} {brand.name}</span>
             <span>Oss.</span>
           </div>
         </div>

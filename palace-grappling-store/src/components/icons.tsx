@@ -151,3 +151,90 @@ export const StarIcon = (p: IconProps) => (
     <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
   </Icon>
 );
+
+// ── Painel administrativo ──
+export const DashboardIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z" />
+  </Icon>
+);
+export const OrdersIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" />
+    <path d="M9 8h6M9 12h6" />
+  </Icon>
+);
+export const TagIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 12V4h8l10 10-8 8L3 12Z" />
+    <circle cx="7.5" cy="8.5" r="1.3" />
+  </Icon>
+);
+export const FolderIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 6h7l2 2h9v11H3V6Z" />
+  </Icon>
+);
+export const BoxIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z" />
+    <path d="m3 7 9 4 9-4M12 11v10" />
+  </Icon>
+);
+export const UsersIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2" />
+    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.9c1.8.8 3 2.5 3.5 5.1" />
+  </Icon>
+);
+export const BookIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4V4ZM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6V4Z" />
+  </Icon>
+);
+export const LinkIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  </Icon>
+);
+export const WalletIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 6h16v14H3V6ZM3 6l12-3v3" />
+    <path d="M15 12h6v4h-6z" />
+  </Icon>
+);
+export const ChartIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 20V4M4 20h16" />
+    <path d="M8 16v-4M12 16V8M16 16v-6" />
+  </Icon>
+);
+export const GearIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
+  </Icon>
+);
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m15 5-7 7 7 7" />
+  </Icon>
+);
+export const ChevronRightIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m9 5 7 7-7 7" />
+  </Icon>
+);
+export const LogoutIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14 4h6v16h-6M10 8l-4 4 4 4M6 12h11" />
+  </Icon>
+);
+export const AlertIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3 2 20h20L12 3Z" />
+    <path d="M12 10v4M12 17v.5" />
+  </Icon>
+);

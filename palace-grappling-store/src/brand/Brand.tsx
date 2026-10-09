@@ -1,11 +1,12 @@
 import { useId } from 'react';
 import styles from './brand.module.css';
+import { brand } from '@/config/env';
 
 // Identidade original da Palace Grappling (ver docs/DIRECAO-VISUAL.md).
 // Monograma: "P" geométrico chanfrado apoiado sobre uma faixa de Jiu-Jitsu;
 // a ponteira da faixa, com 4 graus, é o único ponto de cor.
 
-export function Monogram({ size = 40, title = 'Palace Grappling' }: { size?: number; title?: string | null }) {
+export function Monogram({ size = 40, title = brand.name }: { size?: number; title?: string | null }) {
   const id = useId();
   return (
     <svg
@@ -31,14 +32,14 @@ export function Monogram({ size = 40, title = 'Palace Grappling' }: { size?: num
   );
 }
 
-/** Logotipo completo: monograma + "PALACE" condensado + "GRAPPLING" em tracking largo. */
+/** Logotipo completo: monograma + nome curto condensado + subtítulo em tracking largo (ver brand em config/env). */
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className={styles.logo}>
       <Monogram size={compact ? 30 : 36} title={null} />
       <span className={styles.wordmark}>
-        <span className={styles.word}>PALACE</span>
-        <span className={styles.sub}>GRAPPLING</span>
+        <span className={styles.word}>{brand.short}</span>
+        {brand.subtitle ? <span className={styles.sub}>{brand.subtitle}</span> : null}
       </span>
     </span>
   );

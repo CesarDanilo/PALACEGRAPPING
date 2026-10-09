@@ -9,6 +9,7 @@ import { TextField } from '@/components/ui/Field';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
 import { ApiError } from '@/lib/api/client';
 import styles from './admin.module.css';
+import { brand } from '@/config/env';
 
 const schema = z.object({
   email: z.email('Informe um e-mail válido'),
@@ -41,7 +42,7 @@ export function LoginPage() {
     <main className={styles.loginPage}>
       <form className={styles.loginCard} onSubmit={onSubmit} noValidate aria-labelledby="login-title">
         <p className={styles.loginBrand}>
-          PALACE <span>ADMIN</span>
+          {brand.short} <span>{brand.adminLabel}</span>
         </p>
         <h1 id="login-title" className={styles.loginTitle}>
           Entrar no painel

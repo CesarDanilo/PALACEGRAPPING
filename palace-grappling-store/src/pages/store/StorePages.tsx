@@ -12,6 +12,7 @@ import { ApiError } from '@/lib/api/client';
 import { storefrontApi, storefrontKeys } from '@/lib/api/storefront';
 import type { SalesContext } from '@/lib/api/types';
 import styles from './pages.module.css';
+import { brand } from '@/config/env';
 
 export { HomePage } from './HomePage';
 export { ProductPage } from './ProductPage';
@@ -114,7 +115,7 @@ export function ExclusiveLinkPage() {
     return (
       <section className={styles.linkGate}>
         <div className={`container ${styles.linkGateInner}`}>
-          <CircleBadge text="Acesso exclusivo · Palace Grappling" />
+          <CircleBadge text={`Acesso exclusivo · ${brand.name}`} />
           <h1 className={styles.linkTitle}>
             Link indisponível<span className={styles.dot}>.</span>
           </h1>
@@ -145,7 +146,7 @@ export function ExclusiveLinkPage() {
               </div>
             ) : null}
           </div>
-          <CircleBadge text="Seleção por convite · Palace" />
+          <CircleBadge text={`Seleção por convite · ${brand.short}`} />
         </div>
         <BeltBar />
       </section>
@@ -217,7 +218,7 @@ export function AboutPage() {
           </div>
           <div className={styles.aboutText}>
             <p>
-              A Palace Grappling existe para quem faz do Jiu-Jitsu uma rotina: o treino das seis da manhã, o rola puxado de sexta, o campeonato que chega depois de
+              A {brand.name} existe para quem faz do Jiu-Jitsu uma rotina: o treino das seis da manhã, o rola puxado de sexta, o campeonato que chega depois de
               meses de preparo.
             </p>
             <p>

@@ -284,12 +284,16 @@ export const adminApi = {
   links: () => get<{ items: CatalogLink[] }>('/catalog-links'),
   createLink: (body: { catalogId: string; label: string; expiresAt: string | null; maxUses: number | null }) => send<CatalogLink>('POST', '/catalog-links', body),
   updateLink: (id: string, body: { label?: string; expiresAt?: string | null; maxUses?: number | null; isActive?: boolean }) => send<CatalogLink>('PATCH', `/catalog-links/${id}`, body),
+  deleteLink: (id: string) => send<void>('DELETE', `/catalog-links/${id}`),
+  deleteAllLinks: () => send<{ deleted: number }>('DELETE', '/catalog-links?confirm=todos'),
 
   orders: (q: Query) => get<Page<AdminOrder>>('/orders', q),
   order: (id: string) => get<{ order: AdminOrder; history: OrderHistory[]; payments: AdminPayment[] }>(`/orders/${id}`),
   changeStatus: (id: string, body: { status: OrderStatus; note?: string | null; shippingCarrier?: string | null; trackingCode?: string | null; restock?: boolean }) =>
     send<{ order: AdminOrder }>('PATCH', `/orders/${id}/status`, body),
   updateShipping: (id: string, body: { shippingCarrier: string | null; trackingCode: string | null }) => send<{ order: AdminOrder }>('PATCH', `/orders/${id}/shipping`, body),
+  /** Pagamento recebido fora do provedor (Pix direto, dinheiro). Exige observação. */
+  confirmPayment: (id: string, note: string) => send<{ order: AdminOrder }>('POST', `/orders/${id}/manual-payment`, { note }),
 
   customers: (q: Query) => get<Page<Customer>>('/customers', q),
   customer: (id: string) => get<{ customer: Customer; orders: AdminOrder[] }>(`/customers/${id}`),
@@ -306,4 +310,7 @@ export const adminApi = {
   settings: () => get<Settings>('/settings'),
   updateSettings: (body: Partial<Settings>) => send<Settings>('PATCH', '/settings', body),
   members: () => get<{ items: Member[] }>('/tenants/current/members'),
+  addMember: (body: { email: string; name: string; role: Member['role']; password: string }) => send<{ userId: string }>('POST', '/tenants/current/members', body),
+  changeRole: (userId: string, role: Member['role']) => send<void>('PATCH', `/tenants/current/members/${userId}`, { role }),
+  removeMember: (userId: string) => send<void>('DELETE', `/tenants/current/members/${userId}`),
 };

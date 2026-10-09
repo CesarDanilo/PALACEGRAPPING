@@ -10,6 +10,7 @@ import { useAdminSession } from '@/features/admin-auth/AdminSession';
 import { adminApi, type AdminProduct } from '@/lib/api/admin';
 import { centsSchema, skuSchema, stockSchema, toNumber } from '@/lib/validation';
 import { MoneyField, PageHeader, Pager, Panel, errorMessage, money, useAdminKey, useAdminMutation } from './common';
+import { StockBadge, Thumb, stockLevel, useLowStockThreshold } from './highlights';
 import styles from './admin.module.css';
 
 export function ProductsPage() {
@@ -18,6 +19,7 @@ export function ProductsPage() {
   const [params, setParams] = useSearchParams();
   const search = params.get('q') ?? '';
   const page = Number(params.get('pagina') ?? 1);
+  const threshold = useLowStockThreshold();
   const products = useQuery({
     queryKey: key('products', search, page),
     queryFn: () => adminApi.products({ search: search || undefined, page, pageSize: 25 }),
@@ -63,18 +65,31 @@ export function ProductsPage() {
                   <th scope="col">Produto</th>
                   <th scope="col">Categoria</th>
                   <th scope="col" className={styles.num}>Preço</th>
-                  <th scope="col" className={styles.num}>Estoque</th>
+                  <th scope="col">Estoque</th>
                   <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {products.data.items.map((p) => (
-                  <tr key={p.id}>
+                {products.data.items.map((p) => {
+                  const total = p.variants.reduce((s, v) => s + v.stock, 0);
+                  const active = p.variants.filter((v) => v.isActive);
+                  const out = active.filter((v) => stockLevel(v.stock, threshold) === 'out').length;
+                  const low = active.filter((v) => stockLevel(v.stock, threshold) === 'low').length;
+                  const cover = [...p.images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.position - b.position)[0];
+                  return (
+                  <tr key={p.id} className={out ? styles.rowDanger : low ? styles.rowWarn : undefined}>
                     <td>
-                      <Link to={`/admin/produtos/${p.id}`} className={styles.rowLink}>
-                        {p.name}
-                      </Link>
-                      <div className={styles.muted}>{p.variants.length} variantes · {p.images.length} fotos</div>
+                      <span className={styles.productCell}>
+                        <Thumb url={cover?.url} alt="" />
+                        <span>
+                          <Link to={`/admin/produtos/${p.id}`} className={styles.rowLink}>
+                            {p.name}
+                          </Link>
+                          <span className={styles.muted} style={{ display: 'block' }}>
+                            {p.variants.length} variantes · {p.images.length} fotos
+                          </span>
+                        </span>
+                      </span>
                     </td>
                     <td>{p.category?.name ?? '—'}</td>
                     <td className={styles.num}>
@@ -86,10 +101,18 @@ export function ProductsPage() {
                         money(p.price)
                       )}
                     </td>
-                    <td className={styles.num}>{p.variants.reduce((s, v) => s + v.stock, 0)}</td>
-                    <td>{p.isActive ? 'Ativo' : 'Inativo'}{p.isFeatured ? ' · Destaque' : ''}</td>
+                    <td>
+                      <StockBadge stock={total} threshold={out || low ? Number.POSITIVE_INFINITY : threshold} compact />
+                      {out ? <span className={`${styles.stock} ${styles.stock_out}`} style={{ marginLeft: 6 }}>{out} esgotada{out > 1 ? 's' : ''}</span> : null}
+                      {low ? <span className={`${styles.stock} ${styles.stock_low}`} style={{ marginLeft: 6 }}>{low} baixa{low > 1 ? 's' : ''}</span> : null}
+                    </td>
+                    <td>
+                      <span className={`${styles.pill} ${p.isActive ? styles.pill_ok : styles.pill_bad}`}>{p.isActive ? 'Ativo' : 'Inativo'}</span>
+                      {p.isFeatured ? <span className={`${styles.pill} ${styles.pill_info}`} style={{ marginLeft: 6 }}>Destaque</span> : null}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             <Pager

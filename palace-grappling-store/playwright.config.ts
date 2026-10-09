@@ -16,6 +16,8 @@ export default defineConfig({
     { name: 'mobile', testMatch: /store.spec/, use: { ...devices['Pixel 7'] } },
     // 320, 390, 768 e 1280 px: cada teste define a própria viewport.
     { name: 'responsive', testMatch: /responsive.spec/, use: { ...devices['Desktop Chrome'] } },
+    // Funções do painel (menu, estoque, pagamento manual, links, equipe).
+    { name: 'admin', testMatch: /admin.spec/, use: { ...devices['Desktop Chrome'] } },
     // Só com E2E_CSP=1, contra o build (vite preview).
     { name: 'csp', testMatch: /csp.spec/, use: { ...devices['Desktop Chrome'] } },
   ],

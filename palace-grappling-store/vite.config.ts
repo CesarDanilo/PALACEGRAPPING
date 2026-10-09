@@ -6,6 +6,9 @@ import { securityHeaders } from './security-headers';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  // Padrões da marca para o index.html (%VITE_BRAND_NAME%); o app lê os mesmos em src/config/env.ts.
+  process.env.VITE_BRAND_NAME ||= env.VITE_BRAND_NAME || 'Palace Grappling';
+  process.env.VITE_BRAND_DESCRIPTION ||= env.VITE_BRAND_DESCRIPTION || `${process.env.VITE_BRAND_NAME}: kimonos, rash guards e equipamentos premium para Jiu-Jitsu e grappling.`;
   return {
     plugins: [react()],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

@@ -149,6 +149,8 @@ Enquanto `src` for `null`, a loja mostra uma ilustração geométrica com o selo
 
 ## Personalizar a identidade
 
+- **Nome e marca por variável de ambiente** (para revender o sistema): `VITE_BRAND_NAME`, `VITE_BRAND_SHORT`, `VITE_BRAND_SUBTITLE`, `VITE_BRAND_DESCRIPTION`, `VITE_BRAND_SINCE` e `VITE_ADMIN_LABEL` (ver `.env.example` e `src/config/env.ts`). Na Vercel: Settings → Environment Variables e um novo deploy. Contato, frete e prefixo do pedido ficam em Configurações no painel.
+
 - **Cores, fontes, espaçamentos e raios:** `src/styles/tokens.css`. As fontes importadas ficam em `src/styles/base.css`.
 - **Logotipo e monograma:** `src/brand/Brand.tsx` (SVG).
 - **Textos de marca:** `src/pages/store/HomePage.tsx` e `StorePages.tsx`.

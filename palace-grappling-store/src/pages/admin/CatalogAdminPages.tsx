@@ -1,19 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useSearchParams } from 'react-router';
 import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
-import { adminApi, type AdminCatalog, type AdminCategory, type StockMovement } from '@/lib/api/admin';
-import { PageHeader, Pager, Panel, dateTime, errorMessage, useAdminKey, useAdminMutation } from './common';
+import { adminApi, type AdminCatalog, type AdminCategory } from '@/lib/api/admin';
+import { PageHeader, Panel, dateTime, errorMessage, useAdminKey, useAdminMutation } from './common';
 import styles from './admin.module.css';
-import { toNumber } from '@/lib/validation';
 
 const slugRule = z.union([z.literal(''), z.string().max(120, 'Máximo de 120 caracteres').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use minúsculas, números e hífens')]);
-const intFromInput = { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) };
 
 const slugify = (s: string) =>
   s
@@ -108,156 +105,6 @@ export function CategoriesPage() {
           </table>
         )}
       </Panel>
-    </div>
-  );
-}
-
-// ───────────────────────── Estoque ─────────────────────────
-
-const movementLabel: Record<StockMovement['type'], string> = {
-  INBOUND: 'Entrada',
-  OUTBOUND: 'Saída',
-  ADJUSTMENT: 'Ajuste',
-  SALE: 'Venda',
-  RELEASE: 'Devolução ao estoque',
-  RETURN: 'Devolução de cliente',
-};
-
-const movementSchema = z
-  .object({
-    type: z.enum(['INBOUND', 'OUTBOUND', 'ADJUSTMENT']),
-    quantity: z.number({ error: 'Informe um número' }).int('Use um número inteiro').min(0, 'Não pode ser negativo'),
-    reason: z.string().trim().min(2, 'Descreva o motivo').max(200, 'Máximo de 200 caracteres'),
-  })
-  .superRefine((v, ctx) => {
-    if (v.type !== 'ADJUSTMENT' && v.quantity < 1) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Mínimo de 1 unidade' });
-    if (v.type !== 'ADJUSTMENT' && v.quantity > 100_000) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Máximo de 100.000 por movimentação' });
-    if (v.type === 'ADJUSTMENT' && v.quantity > 1_000_000) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Máximo de 1.000.000' });
-  });
-type MovementForm = z.infer<typeof movementSchema>;
-
-export function InventoryPage() {
-  const key = useAdminKey();
-  const { can } = useAdminSession();
-  const [params, setParams] = useSearchParams();
-  const variantId = params.get('variante') ?? undefined;
-  const page = Number(params.get('pagina') ?? 1);
-  const low = useQuery({ queryKey: key('low-stock'), queryFn: adminApi.lowStock });
-  const movements = useQuery({
-    queryKey: key('movements', variantId, page),
-    queryFn: () => adminApi.movements({ variantId, page, pageSize: 30 }),
-    placeholderData: keepPreviousData,
-  });
-  const form = useForm<MovementForm>({ resolver: zodResolver(movementSchema), defaultValues: { type: 'INBOUND', quantity: 1, reason: '' } });
-  const type = form.watch('type');
-  const me = form.formState.errors;
-  const move = useAdminMutation(
-    (v: MovementForm) =>
-      adminApi.move(variantId!, v.type === 'ADJUSTMENT' ? { type: 'ADJUSTMENT', countedStock: v.quantity, reason: v.reason } : { type: v.type, quantity: v.quantity, reason: v.reason }),
-    () => form.reset({ ...form.getValues(), reason: '' }),
-  );
-
-  return (
-    <div className={styles.page}>
-      <PageHeader title="Estoque" description="Saldo por variante e histórico de todas as movimentações." />
-      <div className={styles.split}>
-        <Panel title={variantId ? 'Movimentações da variante' : 'Últimas movimentações'} actions={variantId ? <button type="button" className={styles.linkButton} onClick={() => setParams({})}>Ver todas</button> : null}>
-          {movements.isPending ? (
-            <LoadingState />
-          ) : movements.isError ? (
-            <Alert tone="danger">{errorMessage(movements.error)}</Alert>
-          ) : !movements.data.items.length ? (
-            <EmptyState title="Sem movimentações" />
-          ) : (
-            <>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">Data</th>
-                    <th scope="col">SKU</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col" className={styles.num}>Qtd.</th>
-                    <th scope="col" className={styles.num}>Saldo</th>
-                    <th scope="col">Motivo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {movements.data.items.map((m) => (
-                    <tr key={m.id}>
-                      <td>{dateTime(m.createdAt)}</td>
-                      <td>
-                        <Link className={styles.code} to={`/admin/estoque?variante=${m.variantId}`}>
-                          {m.sku}
-                        </Link>
-                      </td>
-                      <td>{movementLabel[m.type]}</td>
-                      <td className={styles.num}>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</td>
-                      <td className={styles.num}>{m.balanceAfter}</td>
-                      <td>
-                        {m.reason}
-                        {m.orderId ? (
-                          <>
-                            {' '}
-                            · <Link to={`/admin/pedidos/${m.orderId}`}>pedido</Link>
-                          </>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <Pager page={movements.data.page} totalPages={movements.data.totalPages} onChange={(p) => setParams({ ...(variantId ? { variante: variantId } : {}), pagina: String(p) })} />
-            </>
-          )}
-        </Panel>
-
-        <div className={styles.page}>
-          {variantId && can('inventory:write') ? (
-            <Panel title="Registrar movimentação">
-              {move.isError ? <Alert tone="danger">{errorMessage(move.error)}</Alert> : null}
-              {move.isSuccess ? <Alert tone="success">Saldo atual: {move.data.balance}</Alert> : null}
-              <form className={styles.page} noValidate onSubmit={form.handleSubmit((v) => move.mutate(v))}>
-                <div className={styles.field}>
-                  <label htmlFor="mv-type">Tipo</label>
-                  <select id="mv-type" {...form.register('type')}>
-                    <option value="INBOUND">Entrada</option>
-                    <option value="OUTBOUND">Saída (perda, avaria, brinde)</option>
-                    <option value="ADJUSTMENT">Ajuste para saldo contado</option>
-                  </select>
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="mv-qty">{type === 'ADJUSTMENT' ? 'Saldo contado' : 'Quantidade'}</label>
-                  <input id="mv-qty" type="number" inputMode="numeric" step={1} min={type === 'ADJUSTMENT' ? 0 : 1} aria-invalid={me.quantity ? true : undefined} {...form.register('quantity', intFromInput)} />
-                  {me.quantity ? <p className={styles.fieldError}>{me.quantity.message}</p> : null}
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="mv-reason">Motivo</label>
-                  <input id="mv-reason" aria-invalid={me.reason ? true : undefined} {...form.register('reason')} />
-                  {me.reason ? <p className={styles.fieldError}>{me.reason.message}</p> : null}
-                </div>
-                <Button size="sm" type="submit" loading={move.isPending}>
-                  Registrar
-                </Button>
-              </form>
-            </Panel>
-          ) : (
-            <p className={styles.muted}>Escolha uma variante (pelo SKU no histórico ou na página do produto) para registrar entrada, saída ou ajuste.</p>
-          )}
-          <Panel title="Estoque baixo">
-            {low.data?.items.length ? (
-              <ul className={styles.activity}>
-                {low.data.items.map((v) => (
-                  <li key={v.id}>
-                    <Link to={`/admin/estoque?variante=${v.id}`}>{v.productName}</Link> <span className={styles.code}>{v.sku}</span> · <strong>{v.stock}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.muted}>Nada abaixo do limite.</p>
-            )}
-          </Panel>
-        </div>
-      </div>
     </div>
   );
 }
@@ -489,11 +336,33 @@ export function LinksPage() {
     () => form.reset({ catalogId: form.getValues('catalogId'), label: '', expiresAt: '', maxUses: '' }),
   );
   const toggle = useAdminMutation((v: { id: string; isActive: boolean }) => adminApi.updateLink(v.id, { isActive: v.isActive }));
+  const removeOne = useAdminMutation((id: string) => adminApi.deleteLink(id));
+  const removeAll = useAdminMutation(() => adminApi.deleteAllLinks());
+  const total = links.data?.items.length ?? 0;
   const now = Date.now();
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Links exclusivos" description="Compartilham uma seleção sem expor o catálogo. O token não dá acesso ao painel." />
+      <PageHeader
+        title="Links exclusivos"
+        description="Compartilham uma seleção sem expor o catálogo. O token não dá acesso ao painel."
+        actions={
+          can('catalog:write') && total ? (
+            <Button
+              size="sm"
+              variant="danger"
+              loading={removeAll.isPending}
+              onClick={() => {
+                if (window.confirm(`Apagar os ${total} links? Quem recebeu um link deixa de conseguir abrir. Os pedidos já feitos continuam no sistema. Não dá para desfazer.`)) removeAll.mutate(undefined);
+              }}
+            >
+              Apagar todos
+            </Button>
+          ) : null
+        }
+      />
+      {removeAll.isSuccess ? <Alert tone="success">{removeAll.data.deleted} links apagados.</Alert> : null}
+      {removeOne.isError || removeAll.isError ? <Alert tone="danger">{errorMessage(removeOne.error ?? removeAll.error)}</Alert> : null}
       {create.isError ? <Alert tone="danger">{errorMessage(create.error)}</Alert> : null}
       {can('catalog:write') ? (
         <Panel title="Gerar link">
@@ -549,6 +418,7 @@ export function LinksPage() {
                 <th scope="col" className={styles.num}>Pedidos</th>
                 <th scope="col">Link</th>
                 <th scope="col">Ativo</th>
+                <th scope="col"><span className="visually-hidden">Ações</span></th>
               </tr>
             </thead>
             <tbody>
@@ -584,6 +454,21 @@ export function LinksPage() {
                         disabled={!can('catalog:write')}
                         onChange={(e) => toggle.mutate({ id: l.id, isActive: e.target.checked })}
                       />
+                    </td>
+                    <td>
+                      {can('catalog:write') ? (
+                        <button
+                          type="button"
+                          className={`${styles.linkButton} ${styles.dangerButton}`}
+                          aria-label={`Apagar link ${l.label}`}
+                          disabled={removeOne.isPending && removeOne.variables === l.id}
+                          onClick={() => {
+                            if (window.confirm(`Apagar o link "${l.label}"? Quem recebeu deixa de conseguir abrir. Não dá para desfazer.`)) removeOne.mutate(l.id);
+                          }}
+                        >
+                          Apagar
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );

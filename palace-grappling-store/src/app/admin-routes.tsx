@@ -10,5 +10,6 @@ export const AdminArea = AdminLayout;
 export { LoginPage } from '@/pages/admin/LoginPage';
 export { DashboardPage } from '@/pages/admin/DashboardPage';
 export { ProductEditorPage, ProductsPage } from '@/pages/admin/ProductsPages';
-export { CatalogsPage, CategoriesPage, InventoryPage, LinksPage } from '@/pages/admin/CatalogAdminPages';
+export { CatalogsPage, CategoriesPage, LinksPage } from '@/pages/admin/CatalogAdminPages';
+export { InventoryPage } from '@/pages/admin/InventoryPage';
 export { CustomerDetailPage, CustomersPage, EntriesPage, FinancePage, OrderDetailPage, OrdersPage, ReportsPage, SettingsPage } from '@/pages/admin/OperationsPages';

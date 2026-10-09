@@ -12,6 +12,9 @@ import { ApiError, api, session } from '@/lib/api/client';
 import type { LoginResponse, OrderStatus } from '@/lib/api/types';
 import { centsSchema, emailSchema, passwordSchema, phoneSchema, toNumber } from '@/lib/validation';
 import { MoneyField, PageHeader, Pager, Panel, StatusPill, date, dateTime, errorMessage, money, orderStatusText, useAdminKey, useAdminMutation } from './common';
+import { Callout, Kpi } from './highlights';
+import { TeamPanel } from './TeamPanel';
+import { ChartIcon, OrdersIcon, WalletIcon } from '@/components/icons';
 import styles from './admin.module.css';
 
 const intInput = { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) };
@@ -149,6 +152,8 @@ export function OrderDetailPage() {
   const [carrier, setCarrier] = useState<string | null>(null);
   const [tracking, setTracking] = useState<string | null>(null);
   const [restock, setRestock] = useState(true);
+  const [paymentNote, setPaymentNote] = useState('');
+  const confirmPayment = useAdminMutation(() => adminApi.confirmPayment(id, paymentNote.trim()), () => setPaymentNote(''));
   const change = useAdminMutation((status: OrderStatus) =>
     adminApi.changeStatus(id, {
       status,
@@ -165,7 +170,7 @@ export function OrderDetailPage() {
   if (data.isError) return <Alert tone="danger">{errorMessage(data.error)}</Alert>;
   const { order, history, payments } = data.data;
   const actions = nextActions[order.status] ?? [];
-  const err = change.error ?? shipping.error;
+  const err = change.error ?? shipping.error ?? confirmPayment.error;
 
   return (
     <div className={styles.page}>
@@ -211,6 +216,32 @@ export function OrderDetailPage() {
               </dd>
             </dl>
           </Panel>
+
+          {order.status === 'PENDING_PAYMENT' && can('orders:write') && can('finance:write') ? (
+            <Panel title="Recebeu o pagamento por fora?">
+              <form
+                className={styles.page}
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (paymentNote.trim().length < 3) return;
+                  if (window.confirm(`Confirmar o pagamento de ${money(order.total)} do pedido ${order.number}? O pedido vai para "Pago" e a receita entra no financeiro.`)) confirmPayment.mutate(undefined);
+                }}
+              >
+                <p className={styles.muted}>Use quando o cliente pagou por Pix direto, dinheiro ou maquininha, sem passar pelo Mercado Pago. Fica registrado quem confirmou.</p>
+                <div className={styles.field}>
+                  <label htmlFor="pay-note">Como foi pago (obrigatório)</label>
+                  <input id="pay-note" maxLength={500} placeholder="Ex.: Pix recebido em 09/10, comprovante no WhatsApp" value={paymentNote} aria-invalid={confirmPayment.isError ? true : undefined} onChange={(e) => setPaymentNote(e.target.value)} />
+                  {paymentNote.length > 0 && paymentNote.trim().length < 3 ? <p className={styles.fieldError}>Descreva como o pagamento foi recebido</p> : null}
+                </div>
+                <div>
+                  <Button size="sm" type="submit" loading={confirmPayment.isPending} disabled={paymentNote.trim().length < 3}>
+                    Confirmar pagamento
+                  </Button>
+                </div>
+              </form>
+            </Panel>
+          ) : null}
 
           {can('orders:write') && actions.length ? (
             <Panel title="Próximo passo">
@@ -456,6 +487,29 @@ function monthRange(offset = 0) {
   return { from: from.toISOString(), to: to.toISOString(), label: from.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }) };
 }
 
+/** Duas barras proporcionais: quanto entrou e quanto saiu no período. */
+function FlowBars({ income, expense }: { income: number; expense: number }) {
+  const max = Math.max(income, expense, 1);
+  return (
+    <div className={styles.flow}>
+      <div className={styles.flowRow}>
+        <span>Entradas</span>
+        <span className={styles.flowTrack}>
+          <span className={styles.flowIn} style={{ width: `${(income / max) * 100}%` }} />
+        </span>
+        <strong className={styles.positive}>{money(income)}</strong>
+      </div>
+      <div className={styles.flowRow}>
+        <span>Saídas</span>
+        <span className={styles.flowTrack}>
+          <span className={styles.flowOut} style={{ width: `${(expense / max) * 100}%` }} />
+        </span>
+        <strong className={styles.negative}>{money(expense)}</strong>
+      </div>
+    </div>
+  );
+}
+
 export function FinancePage() {
   const key = useAdminKey();
   const [offset, setOffset] = useState(0);
@@ -490,22 +544,35 @@ export function FinancePage() {
         <Alert tone="danger">{errorMessage(summary.error)}</Alert>
       ) : s ? (
         <>
-          <section className={styles.metrics} aria-label="Indicadores">
-            {[
-              ['Pedidos criados', money(s.ordersCreated.total), `${s.ordersCreated.count} pedidos, qualquer status`],
-              ['Vendas aprovadas', money(s.salesApproved.total), `${s.salesApproved.count} pagamentos aprovados no período`],
-              ['Recebido', money(s.received), 'Receitas pagas, por data de recebimento'],
-              ['Despesas pagas', money(s.expensesPaid), 'Por data de pagamento'],
-              ['Despesas do período', money(s.expensesByCompetence), 'Por competência (pagas ou não)'],
-              ['Resultado de caixa', money(s.cashResult), 'Recebido − despesas pagas. Não é lucro contábil.'],
-            ].map(([label, value, hint]) => (
-              <div key={label} className={styles.metric}>
-                <span className={styles.metricLabel}>{label}</span>
-                <strong className={styles.metricValue}>{value}</strong>
-                <span className={styles.metricHint}>{hint}</span>
-              </div>
-            ))}
+          {s.cashResult < 0 ? (
+            <Callout tone="danger">
+              Saídas maiores que as entradas neste período: resultado de caixa de <strong>{money(s.cashResult)}</strong>.
+            </Callout>
+          ) : null}
+          {s.expensesByCompetence > s.expensesPaid ? (
+            <Callout tone="warn" action={<Link to="/admin/financeiro/despesas?status=PENDING" className={styles.linkButton}>Ver despesas</Link>}>
+              <strong>{money(s.expensesByCompetence - s.expensesPaid)}</strong> em despesas deste período ainda não foram pagas.
+            </Callout>
+          ) : null}
+          <section className={styles.kpis} aria-label="Resultado">
+            <Kpi label="Recebido" value={money(s.received)} icon={WalletIcon} tone="success" hint="Receitas pagas, por data de recebimento" to="/admin/financeiro/receitas" />
+            <Kpi label="Despesas pagas" value={money(s.expensesPaid)} icon={WalletIcon} tone={s.expensesPaid ? 'danger' : 'neutral'} hint="Por data de pagamento" to="/admin/financeiro/despesas" />
+            <Kpi
+              label="Resultado de caixa"
+              value={money(s.cashResult)}
+              icon={ChartIcon}
+              tone={s.cashResult > 0 ? 'success' : s.cashResult < 0 ? 'danger' : 'neutral'}
+              hint="Recebido − despesas pagas. Não é lucro contábil."
+            />
           </section>
+          <section className={styles.kpis} aria-label="Vendas">
+            <Kpi label="Vendas aprovadas" value={money(s.salesApproved.total)} icon={ChartIcon} tone="accent" hint={`${s.salesApproved.count} pagamentos aprovados no período`} />
+            <Kpi label="Pedidos criados" value={money(s.ordersCreated.total)} icon={OrdersIcon} hint={`${s.ordersCreated.count} pedidos, qualquer status`} to="/admin/pedidos" />
+            <Kpi label="Despesas do período" value={money(s.expensesByCompetence)} icon={WalletIcon} hint="Por competência (pagas ou não)" />
+          </section>
+          <Panel title="Entradas x saídas">
+            <FlowBars income={s.received} expense={s.expensesPaid} />
+          </Panel>
           <Panel title="Como ler estes números">
             <ul className={styles.activity}>
               <li>Pedido criado não é venda: só conta como venda quando o provedor aprova o pagamento.</li>
@@ -671,9 +738,17 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
                     </td>
                     <td>{t.categoryName ?? '—'}</td>
                     <td>
-                      {t.status === 'PAID' ? `${kind === 'INCOME' ? 'Recebida' : 'Paga'} em ${date(t.paidAt)}` : t.status === 'PENDING' ? 'Pendente' : 'Cancelada'}
+                      {t.status === 'PAID' ? (
+                        <span className={`${styles.pill} ${styles.pill_ok}`}>{`${kind === 'INCOME' ? 'Recebida' : 'Paga'} em ${date(t.paidAt)}`}</span>
+                      ) : t.status === 'PENDING' ? (
+                        <span className={`${styles.pill} ${styles.pill_warn}`}>Pendente</span>
+                      ) : (
+                        <span className={`${styles.pill} ${styles.pill_bad}`}>Cancelada</span>
+                      )}
                     </td>
-                    <td className={styles.num}>{money(t.amount)}</td>
+                    <td className={`${styles.num} ${t.status === 'CANCELLED' ? styles.muted : kind === 'INCOME' ? styles.positive : styles.negative}`}>
+                      <strong>{money(t.amount)}</strong>
+                    </td>
                     <td>
                       {can('finance:write') && !t.paymentId ? (
                         <div className={styles.actions}>
@@ -732,23 +807,16 @@ export function ReportsPage() {
         }
       />
       {summary.data ? (
-        <section className={styles.metrics} aria-label="Ano">
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Vendas aprovadas no ano</span>
-            <strong className={styles.metricValue}>{money(summary.data.salesApproved.total)}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Recebido</span>
-            <strong className={styles.metricValue}>{money(summary.data.received)}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Despesas pagas</span>
-            <strong className={styles.metricValue}>{money(summary.data.expensesPaid)}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Resultado de caixa</span>
-            <strong className={styles.metricValue}>{money(summary.data.cashResult)}</strong>
-          </div>
+        <section className={styles.kpis} aria-label="Ano">
+          <Kpi label="Vendas aprovadas no ano" value={money(summary.data.salesApproved.total)} icon={ChartIcon} tone="accent" hint={`${summary.data.salesApproved.count} pagamentos`} />
+          <Kpi label="Recebido" value={money(summary.data.received)} icon={WalletIcon} tone="success" />
+          <Kpi label="Despesas pagas" value={money(summary.data.expensesPaid)} icon={WalletIcon} tone={summary.data.expensesPaid ? 'danger' : 'neutral'} />
+          <Kpi
+            label="Resultado de caixa"
+            value={money(summary.data.cashResult)}
+            icon={ChartIcon}
+            tone={summary.data.cashResult > 0 ? 'success' : summary.data.cashResult < 0 ? 'danger' : 'neutral'}
+          />
         </section>
       ) : null}
       <Panel title="Mês a mês">
@@ -771,12 +839,14 @@ export function ReportsPage() {
               {cashflow.data.items.map((r) => (
                 <tr key={r.period}>
                   <td>{new Date(`${r.period}-01T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' })}</td>
-                  <td className={styles.num}>{money(r.income)}</td>
-                  <td className={styles.num}>{money(r.expense)}</td>
-                  <td className={styles.num}>{money(r.income - r.expense)}</td>
+                  <td className={`${styles.num} ${styles.positive}`}>{money(r.income)}</td>
+                  <td className={`${styles.num} ${styles.negative}`}>{money(r.expense)}</td>
+                  <td className={styles.num}>
+                    <strong className={r.income - r.expense >= 0 ? styles.positive : styles.negative}>{money(r.income - r.expense)}</strong>
+                  </td>
                   <td aria-hidden="true" style={{ minWidth: 160 }}>
-                    <div style={{ height: 6, width: `${(r.income / max) * 100}%`, background: 'var(--accent)' }} />
-                    <div style={{ height: 6, marginTop: 2, width: `${(r.expense / max) * 100}%`, background: 'var(--color-graphite-400)' }} />
+                    <div style={{ height: 6, width: `${(r.income / max) * 100}%`, background: 'var(--color-success)', borderRadius: 3 }} />
+                    <div style={{ height: 6, marginTop: 3, width: `${(r.expense / max) * 100}%`, background: 'var(--color-danger)', borderRadius: 3 }} />
                   </td>
                 </tr>
               ))}
@@ -802,29 +872,7 @@ export function SettingsPage() {
       <PageHeader title="Configurações" description="Regras comerciais desta loja." />
       <SettingsForm initial={settings.data} readOnly={!can('settings:write')} />
       <PasswordPanel />
-      {members.data ? (
-        <Panel title="Equipe">
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">Nome</th>
-                <th scope="col">E-mail</th>
-                <th scope="col">Papel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.data.items.map((m) => (
-                <tr key={m.userId}>
-                  <td>{m.name}</td>
-                  <td>{m.email}</td>
-                  <td>{m.role === 'OWNER' ? 'Proprietário' : m.role === 'ADMIN' ? 'Administrador' : 'Operador'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className={styles.muted}>Convites e alteração de papéis estão disponíveis na API (/tenants/current/members).</p>
-        </Panel>
-      ) : null}
+      {members.data ? <TeamPanel members={members.data.items} /> : null}
     </div>
   );
 }

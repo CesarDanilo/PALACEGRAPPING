@@ -11,6 +11,7 @@ import { media } from '@/content/media';
 import { storefrontApi, storefrontKeys } from '@/lib/api/storefront';
 import { formatMoney } from '@/lib/money';
 import styles from './home.module.css';
+import { brand } from '@/config/env';
 
 const pillars = [
   { title: 'Força', text: 'Tecidos pesados e costuras que aguentam pegada, raspagem e rotina de seis treinos por semana.' },
@@ -60,7 +61,7 @@ export function HomePage() {
           </div>
           <div className={styles.heroMedia}>
             <Media slot={media.hero} className={styles.heroImage} eager />
-            <VerticalLabel>Palace Grappling / Est. 2026</VerticalLabel>
+            <VerticalLabel>{`${brand.name} / Est. ${brand.since}`}</VerticalLabel>
             {drop ? (
               <Link to={`/produto/${drop.slug}`} className={styles.dropCard}>
                 <ProductImage product={drop} className={styles.dropThumb} />
@@ -152,7 +153,7 @@ export function HomePage() {
             <div className={styles.campaignMedia}>
               {campaign.heroImageUrl ? <img src={campaign.heroImageUrl} alt={campaign.name} loading="lazy" /> : <Media slot={media.heroDrop} />}
               <span className={styles.campaignBadge}>
-                <CircleBadge text={campaign.type === 'CAMPAIGN' ? 'Edição limitada' : 'Coleção Palace'} tone="paper" />
+                <CircleBadge text={campaign.type === 'CAMPAIGN' ? 'Edição limitada' : `Coleção ${brand.short}`} tone="paper" />
               </span>
             </div>
           </div>
@@ -193,7 +194,7 @@ export function HomePage() {
           <div className={styles.manifestoMedia}>
             <Media slot={media.manifesto} tone="paper" />
             <span className={styles.manifestoBadge}>
-              <CircleBadge text="Palace Grappling · Oss" />
+              <CircleBadge text={`${brand.name} · Oss`} />
             </span>
           </div>
         </div>

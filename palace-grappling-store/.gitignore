@@ -22,3 +22,6 @@ playwright-report/
 .link-qa.mjs
 .why-size.mjs
 .login-loop.mjs
+.link-url-check.mjs
+.why-admin.mjs
+.shots-admin.mjs
