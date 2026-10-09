@@ -14,6 +14,8 @@ const schema = z
     CORS_ORIGINS: z.string().default('http://localhost:5190'),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     ENABLE_API_DOCS: bool.default(true),
+    /** Proxies confiáveis à frente da API (ex.: 2 com Vercel → Render), para o IP real do cliente. */
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).optional(),
 
     DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatória'),
 

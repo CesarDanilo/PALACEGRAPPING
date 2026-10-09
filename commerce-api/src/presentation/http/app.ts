@@ -20,7 +20,7 @@ export function createApp(c: Container) {
   const app = express();
   app.disable('x-powered-by');
   // Atrás de um proxy (Render, Fly, Nginx), o IP real vem de X-Forwarded-For.
-  app.set('trust proxy', c.env.NODE_ENV === 'production' ? 1 : false);
+  app.set('trust proxy', c.env.TRUST_PROXY_HOPS ?? (c.env.NODE_ENV === 'production' ? 1 : false));
 
   app.use(requestId);
   app.use(
