@@ -18,3 +18,7 @@ playwright-report/
 .why.mjs
 .shots.mjs
 .session-check.mjs
+.session-live.mjs
+.link-qa.mjs
+.why-size.mjs
+.login-loop.mjs

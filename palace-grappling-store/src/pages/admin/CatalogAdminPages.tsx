@@ -489,7 +489,6 @@ export function LinksPage() {
     () => form.reset({ catalogId: form.getValues('catalogId'), label: '', expiresAt: '', maxUses: '' }),
   );
   const toggle = useAdminMutation((v: { id: string; isActive: boolean }) => adminApi.updateLink(v.id, { isActive: v.isActive }));
-  const urlOf = (token: string) => `${window.location.origin}/c/${token}`;
   const now = Date.now();
 
   return (
@@ -503,12 +502,15 @@ export function LinksPage() {
               <label htmlFor="lk-catalog">Catálogo</label>
               <select id="lk-catalog" aria-invalid={le.catalogId ? true : undefined} {...form.register('catalogId')}>
                 <option value="">Escolha…</option>
-                {catalogs.data?.items.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {catalogs.data?.items
+                  .filter((c) => c.isActive)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
               </select>
+              <p className={styles.muted}>Só catálogos ativos. Para usar outro, ative-o em Catálogos.</p>
               {le.catalogId ? <p className={styles.fieldError}>{le.catalogId.message}</p> : null}
             </div>
             <div className={styles.field}>
@@ -557,7 +559,7 @@ export function LinksPage() {
                   <tr key={l.id}>
                     <td>{l.label}</td>
                     <td>{l.catalog.name}</td>
-                    <td>{!l.isActive ? 'Desativado' : expired ? 'Expirado' : exhausted ? 'Limite atingido' : l.expiresAt ? `Até ${dateTime(l.expiresAt)}` : 'Válido'}</td>
+                    <td>{!l.isActive ? 'Desativado' : !l.catalog.isActive ? 'Catálogo inativo (não abre)' : expired ? 'Expirado' : exhausted ? 'Limite atingido' : l.expiresAt ? `Até ${dateTime(l.expiresAt)}` : 'Válido'}</td>
                     <td className={styles.num}>
                       {l.useCount}
                       {l.maxUses != null ? ` / ${l.maxUses}` : ''}
@@ -567,7 +569,7 @@ export function LinksPage() {
                         type="button"
                         className={styles.linkButton}
                         onClick={async () => {
-                          await navigator.clipboard?.writeText(urlOf(l.token));
+                          await navigator.clipboard?.writeText(l.url);
                           setCopied(l.id);
                         }}
                       >

@@ -119,8 +119,10 @@ export interface AdminCatalog {
 export interface CatalogLink {
   id: string;
   catalogId: string;
-  catalog: { id: string; name: string; slug: string };
+  catalog: { id: string; name: string; slug: string; isActive: boolean };
   token: string;
+  /** Endereço público para enviar ao cliente (montado pela API com a URL oficial da loja). */
+  url: string;
   label: string;
   expiresAt: string | null;
   maxUses: number | null;
