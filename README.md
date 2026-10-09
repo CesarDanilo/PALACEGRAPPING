@@ -1,37 +1,31 @@
-# PALACE
+# PALACE GRAPPLING: loja e painel
 
-Dois sistemas independentes, lado a lado:
+Este repositório contém o **frontend** da Palace Grappling: a loja e o painel administrativo, em [`palace-grappling-store/`](palace-grappling-store/README.md) (React, Vite).
 
-| Projeto | O que é | Porta (dev) |
-| --- | --- | --- |
-| [`commerce-api/`](commerce-api/README.md) | API comercial genérica e multi-tenant (Node, Express, Prisma, PostgreSQL/Supabase). Não conhece nenhuma marca. | 3350 |
-| [`palace-grappling-store/`](palace-grappling-store/README.md) | Loja e painel administrativo da Palace Grappling (React, Vite). Fala com a API só por HTTP. | 5190 |
+O **backend** (`commerce-api`) vive num repositório próprio: uma API comercial genérica e multi-tenant em Node, Express, Prisma e PostgreSQL/Supabase. A loja fala com ela apenas por HTTP, em `/api/v1`.
 
-Cada projeto tem seu próprio `package.json`, lockfile, `tsconfig`, `Dockerfile`, `.env.example`, README e testes, e pode ser construído e publicado separadamente. Nenhum importa arquivos do outro.
+## Rodar localmente
 
-## Rodar tudo localmente
+Com a API rodando em `http://localhost:3350` (veja o README do backend):
 
 ```bash
-docker compose up -d postgres                 # Postgres de desenvolvimento em localhost:5452
-
-cd commerce-api
-npm install && cp .env.example .env           # gere um JWT_ACCESS_SECRET próprio
-npm run db:deploy
-SEED_ADMIN_PASSWORD='troque-esta-senha' npm run db:seed
-npm run dev
-
-cd ../palace-grappling-store                  # em outro terminal
+cd palace-grappling-store
 npm install && cp .env.example .env
-npm run dev                                   # http://localhost:5190 e /admin/login
+npm run dev          # http://localhost:5190 e /admin/login
 ```
 
-Tudo em containers (API + loja + banco): `docker compose --profile full up -d --build` (loja em `http://localhost:8090`, API em `http://localhost:3350`). Em produção o banco é o Supabase; o Postgres do compose existe só para desenvolvimento e testes.
+Em desenvolvimento, o Vite encaminha `/api` para a API. Em produção (Vercel), quem faz esse encaminhamento é o `palace-grappling-store/vercel.json`.
+
+## Deploy na Vercel
+
+1. Importe este repositório com **Root Directory = `palace-grappling-store`**.
+2. O framework, o build e a pasta de saída já vêm do `vercel.json`.
+3. Não é preciso definir variáveis: `/api/*` é encaminhado para a API no Render (ajuste o destino no `vercel.json` se o serviço tiver outro endereço).
 
 ## Documentação
 
-- [docs/RELATORIO-FINAL.md](docs/RELATORIO-FINAL.md): o que foi entregue nas fases 2 a 5, testes executados e pendências.
-- [docs/DIRECAO-VISUAL.md](docs/DIRECAO-VISUAL.md): análise das referências e identidade da marca.
-- [docs/DEPLOY.md](docs/DEPLOY.md): publicar a loja na Vercel e a API no Render.
-- [docs/FASE-1.md](docs/FASE-1.md): fundação, arquitetura e multi-tenancy.
+- [palace-grappling-store/README.md](palace-grappling-store/README.md): rotas, componentes, integração com a API, testes, Docker.
 - [palace-grappling-store/DESIGN.md](palace-grappling-store/DESIGN.md): sistema visual.
-- READMEs de cada projeto: instalação, variáveis, rotas/endpoints, segurança, testes, Docker, deploy, limitações.
+- [docs/DIRECAO-VISUAL.md](docs/DIRECAO-VISUAL.md): análise das referências e identidade da marca.
+- [docs/RELATORIO-FINAL.md](docs/RELATORIO-FINAL.md) e [docs/FASE-1.md](docs/FASE-1.md): histórico do que foi entregue.
+- [docs/DEPLOY.md](docs/DEPLOY.md): deploy completo (loja na Vercel, API no Render).
