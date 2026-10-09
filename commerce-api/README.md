@@ -151,7 +151,7 @@ Validadas na inicialização (`src/config/env.ts`); a API não sobe com configur
 2. `DATABASE_URL` = *Transaction pooler* (porta **6543**). O driver `pg` usado pelo adapter não depende de prepared statements nomeados, então funciona com o pooler em modo transaction sem parâmetros extras.
 3. `DIRECT_URL` = *Direct connection* (porta **5432**). O Prisma 7 lê a URL de migrations em `prisma.config.ts` (não existe mais `directUrl` no `schema.prisma`).
 4. `npm run db:deploy`. Use `prisma migrate deploy` em produção; **não** use `db push`. Nunca rode `migrate reset` num banco com dados.
-5. Recomendado: em *API → Settings*, remova `public` dos *Exposed schemas* para que a API REST automática do Supabase não exponha as tabelas (o isolamento é feito por esta API).
+5. A migration `20261009010000_enable_rls` ativa RLS em todas as tabelas sem criar políticas: a API REST automática do Supabase (chaves publishable/anon) não enxerga nenhuma linha, enquanto esta API, que conecta como dona das tabelas, não é afetada. Opcionalmente, remova `public` dos *Exposed schemas* em *API → Settings*.
 
 **Storage**
 
@@ -339,6 +339,7 @@ Deploy (qualquer plataforma de containers: Render, Fly.io, Railway, Cloud Run…
 | Upload responde 503 | `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` ausentes. |
 | Checkout com `payment.status = NOT_CONFIGURED` | Faltam `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_WEBHOOK_SECRET`. |
 | Webhook responde 401 | Segredo de assinatura diferente do painel do Mercado Pago, ou proxy alterando o corpo/cabeçalhos. |
+| `certificate is not yet valid` / erro de certificado ao conectar | Relógio local adiantado/atrasado ou cadeia do Supabase não confiável no ambiente. Use `?uselibpqcompat=true&sslmode=require` (TLS sem verificação de cadeia) ou `sslmode=verify-full` com o certificado do Supabase (`sslrootcert`). |
 | Testes de integração "skipped" | `TEST_DATABASE_URL` ausente ou banco inacessível. |
 
 ## Decisões técnicas
