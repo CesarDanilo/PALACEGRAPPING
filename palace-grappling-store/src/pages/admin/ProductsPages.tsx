@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { z } from 'zod';
+import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
-import { adminApi, type AdminProduct, type VariantInput } from '@/lib/api/admin';
+import { adminApi, type AdminProduct } from '@/lib/api/admin';
+import { centsSchema, skuSchema, stockSchema, toNumber } from '@/lib/validation';
 import { MoneyField, PageHeader, Pager, Panel, errorMessage, money, useAdminKey, useAdminMutation } from './common';
 import styles from './admin.module.css';
 
@@ -107,22 +108,46 @@ export function ProductsPage() {
   );
 }
 
+const hexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida');
+
+/** Variante: SKU obrigatório; tamanho e cor curtos; estoque inteiro e não negativo. */
+const variantSchema = z.object({
+  sku: skuSchema,
+  size: z.string().trim().max(20, 'Máximo de 20 caracteres'),
+  color: z.string().trim().max(40, 'Máximo de 40 caracteres'),
+  colorHex: hexSchema,
+  stock: stockSchema,
+});
+type VariantForm = z.infer<typeof variantSchema>;
+
 const productSchema = z
   .object({
-    name: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(160),
-    slug: z.union([z.literal(''), z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use minúsculas, números e hífens')]),
-    description: z.string().max(10_000),
+    name: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(160, 'Máximo de 160 caracteres'),
+    slug: z.union([z.literal(''), z.string().max(120, 'Máximo de 120 caracteres').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use minúsculas, números e hífens')]),
+    description: z.string().max(10_000, 'Máximo de 10.000 caracteres'),
     categoryId: z.string(),
-    line: z.string().max(40),
-    tags: z.string(),
-    price: z.number({ error: 'Informe o preço' }).int().min(0),
-    salePrice: z.number().int().min(0).nullable(),
-    sizeGuide: z.string().max(10_000),
-    shippingInfo: z.string().max(2_000),
+    line: z.string().max(40, 'Máximo de 40 caracteres'),
+    tags: z
+      .string()
+      .refine((v) => v.split(',').filter((t) => t.trim()).length <= 30, 'No máximo 30 tags')
+      .refine((v) => v.split(',').every((t) => t.trim().length <= 40), 'Cada tag com até 40 caracteres'),
+    price: centsSchema,
+    salePrice: centsSchema.nullable(),
+    sizeGuide: z.string().max(10_000, 'Máximo de 10.000 caracteres'),
+    shippingInfo: z.string().max(2_000, 'Máximo de 2.000 caracteres'),
     isActive: z.boolean(),
     isFeatured: z.boolean(),
+    variants: z.array(variantSchema).max(100, 'No máximo 100 variantes'),
   })
-  .refine((v) => v.salePrice == null || v.salePrice < v.price, { path: ['salePrice'], message: 'O promocional deve ser menor que o preço' });
+  .refine((v) => v.salePrice == null || v.salePrice < v.price, { path: ['salePrice'], message: 'O promocional deve ser menor que o preço' })
+  .superRefine((v, ctx) => {
+    const seen = new Set<string>();
+    v.variants.forEach((variant, i) => {
+      const sku = variant.sku.trim().toUpperCase();
+      if (seen.has(sku)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'sku'], message: 'SKU repetido' });
+      seen.add(sku);
+    });
+  });
 type ProductForm = z.infer<typeof productSchema>;
 
 const toForm = (p?: AdminProduct): ProductForm => ({
@@ -138,6 +163,7 @@ const toForm = (p?: AdminProduct): ProductForm => ({
   shippingInfo: p?.shippingInfo ?? '',
   isActive: p?.isActive ?? true,
   isFeatured: p?.isFeatured ?? false,
+  variants: p ? [] : [{ sku: '', size: '', color: '', colorHex: '#0a0a0a', stock: 0 }],
 });
 
 const toInput = (v: ProductForm) => ({
@@ -156,14 +182,6 @@ const toInput = (v: ProductForm) => ({
   releasedAt: null,
 });
 
-interface DraftVariant {
-  sku: string;
-  size: string;
-  color: string;
-  colorHex: string;
-  stock: number;
-}
-
 export function ProductEditorPage() {
   const { id } = useParams();
   const key = useAdminKey();
@@ -179,15 +197,13 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
   const { can } = useAdminSession();
   const readOnly = !can('catalog:write');
   const categories = useQuery({ queryKey: key('categories'), queryFn: adminApi.categories });
-  const [drafts, setDrafts] = useState<DraftVariant[]>([{ sku: '', size: '', color: '', colorHex: '#0a0a0a', stock: 0 }]);
   const form = useForm<ProductForm>({ resolver: zodResolver(productSchema), defaultValues: toForm(product) });
-  const { register, handleSubmit, control, formState } = form;
+  const { register, handleSubmit, control, formState, getValues } = form;
+  const variantFields = useFieldArray({ control, name: 'variants' });
 
   const save = useAdminMutation(async (values: ProductForm) => {
     if (product) return adminApi.updateProduct(product.id, toInput(values));
-    const variants = drafts
-      .filter((d) => d.sku.trim())
-      .map((d, position) => ({
+    const variants = values.variants.map((d, position) => ({
         sku: d.sku.trim().toUpperCase(),
         size: d.size.trim() || null,
         color: d.color.trim() || null,
@@ -229,7 +245,7 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
       {save.isSuccess && product ? <Alert tone="success">Alterações salvas.</Alert> : null}
 
       <form onSubmit={handleSubmit((v) => save.mutate(v))} noValidate>
-        <fieldset disabled={readOnly} className={styles.page} style={{ border: 0, padding: 0, margin: 0 }}>
+        <fieldset disabled={readOnly} className={styles.page} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <Panel title="Dados">
             <div className={styles.formGrid}>
               <div className={styles.field}>
@@ -301,38 +317,53 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
 
           {!product ? (
             <Panel title="Variantes e estoque inicial">
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">SKU</th>
-                    <th scope="col">Tamanho</th>
-                    <th scope="col">Cor</th>
-                    <th scope="col">Hex</th>
-                    <th scope="col">Estoque</th>
-                    <th scope="col"><span className="visually-hidden">Ações</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {drafts.map((d, i) => {
-                    const setField = (patch: Partial<DraftVariant>) => setDrafts((all) => all.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-                    return (
-                      <tr key={i}>
-                        <td><input className={styles.inlineInput} aria-label={`SKU da variante ${i + 1}`} value={d.sku} onChange={(ev) => setField({ sku: ev.target.value })} /></td>
-                        <td><input className={styles.inlineInput} aria-label={`Tamanho da variante ${i + 1}`} value={d.size} onChange={(ev) => setField({ size: ev.target.value })} /></td>
-                        <td><input className={styles.inlineInput} aria-label={`Cor da variante ${i + 1}`} value={d.color} onChange={(ev) => setField({ color: ev.target.value })} /></td>
-                        <td><input type="color" aria-label={`Cor (hex) da variante ${i + 1}`} value={d.colorHex} onChange={(ev) => setField({ colorHex: ev.target.value })} /></td>
-                        <td><input className={styles.inlineInput} type="number" min={0} aria-label={`Estoque da variante ${i + 1}`} value={d.stock} onChange={(ev) => setField({ stock: Math.max(0, Number(ev.target.value)) })} /></td>
-                        <td>
-                          <button type="button" className={styles.linkButton} onClick={() => setDrafts((all) => all.filter((_, j) => j !== i))}>
-                            Remover
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <button type="button" className={styles.linkButton} onClick={() => setDrafts((all) => [...all, { sku: '', size: '', color: all.at(-1)?.color ?? '', colorHex: all.at(-1)?.colorHex ?? '#0a0a0a', stock: 0 }])}>
+              {e.variants?.root?.message || e.variants?.message ? <p className={styles.fieldError}>{e.variants.root?.message ?? e.variants.message}</p> : null}
+              <ol className={styles.variantList}>
+                {variantFields.fields.map((field, i) => {
+                  const ve = e.variants?.[i];
+                  const id = (name: string) => `v-${i}-${name}`;
+                  return (
+                    <li key={field.id} className={styles.variantRow}>
+                      <span className={styles.variantIndex} aria-hidden="true">{i + 1}</span>
+                      <div className={styles.field}>
+                        <label htmlFor={id('sku')}>SKU</label>
+                        <input id={id('sku')} autoCapitalize="characters" aria-invalid={ve?.sku ? true : undefined} aria-describedby={ve?.sku ? id('sku-err') : undefined} {...register(`variants.${i}.sku`)} />
+                        {ve?.sku ? <p id={id('sku-err')} className={styles.fieldError}>{ve.sku.message}</p> : null}
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={id('size')}>Tamanho</label>
+                        <input id={id('size')} aria-invalid={ve?.size ? true : undefined} {...register(`variants.${i}.size`)} />
+                        {ve?.size ? <p className={styles.fieldError}>{ve.size.message}</p> : null}
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={id('color')}>Cor</label>
+                        <div className={styles.colorInput}>
+                          <input type="color" aria-label={`Tom da cor da variante ${i + 1}`} {...register(`variants.${i}.colorHex`)} />
+                          <input id={id('color')} aria-invalid={ve?.color ? true : undefined} {...register(`variants.${i}.color`)} />
+                        </div>
+                        {ve?.color ? <p className={styles.fieldError}>{ve.color.message}</p> : null}
+                      </div>
+                      <div className={styles.field}>
+                        <label htmlFor={id('stock')}>Estoque inicial</label>
+                        <input id={id('stock')} type="number" inputMode="numeric" min={0} step={1} aria-invalid={ve?.stock ? true : undefined} {...register(`variants.${i}.stock`, { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) })} />
+                        {ve?.stock ? <p className={styles.fieldError}>{ve.stock.message}</p> : null}
+                      </div>
+                      <button type="button" className={styles.linkButton} aria-label={`Remover variante ${i + 1}`} disabled={variantFields.fields.length === 1} onClick={() => variantFields.remove(i)}>
+                        Remover
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              <button
+                type="button"
+                className={styles.linkButton}
+                disabled={variantFields.fields.length >= 100}
+                onClick={() => {
+                  const last = getValues('variants').at(-1);
+                  variantFields.append({ sku: '', size: '', color: last?.color ?? '', colorHex: last?.colorHex ?? '#0a0a0a', stock: 0 });
+                }}
+              >
                 Adicionar variante
               </button>
             </Panel>
@@ -355,9 +386,23 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
 }
 
 function VariantsPanel({ product, readOnly }: { product: AdminProduct; readOnly: boolean }) {
-  const [draft, setDraft] = useState<VariantInput & { stock: number }>({ sku: '', size: null, color: null, colorHex: null, price: null, salePrice: null, isActive: true, position: product.variants.length, stock: 0 });
-  const add = useAdminMutation(() => adminApi.addVariant(product.id, { ...draft, sku: draft.sku.trim().toUpperCase() }), () =>
-    setDraft((d) => ({ ...d, sku: '', size: null, stock: 0, position: d.position + 1 })),
+  const blank: VariantForm = { sku: '', size: '', color: '', colorHex: '#0a0a0a', stock: 0 };
+  const form = useForm<VariantForm>({ resolver: zodResolver(variantSchema), defaultValues: blank });
+  const ve = form.formState.errors;
+  const add = useAdminMutation(
+    (v: VariantForm) =>
+      adminApi.addVariant(product.id, {
+        sku: v.sku.trim().toUpperCase(),
+        size: v.size.trim() || null,
+        color: v.color.trim() || null,
+        colorHex: v.color.trim() ? v.colorHex : null,
+        price: null,
+        salePrice: null,
+        isActive: true,
+        position: product.variants.length,
+        stock: v.stock,
+      }),
+    () => form.reset({ ...blank, color: form.getValues('color'), colorHex: form.getValues('colorHex') }),
   );
   const toggle = useAdminMutation((v: { id: string; isActive: boolean }) => adminApi.updateVariant(product.id, v.id, { isActive: v.isActive }));
 
@@ -365,6 +410,7 @@ function VariantsPanel({ product, readOnly }: { product: AdminProduct; readOnly:
     <Panel title="Variantes">
       {add.isError ? <Alert tone="danger">{errorMessage(add.error)}</Alert> : null}
       {toggle.isError ? <Alert tone="danger">{errorMessage(toggle.error)}</Alert> : null}
+      <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Variantes cadastradas">
       <table className={styles.table}>
         <thead>
           <tr>
@@ -400,31 +446,32 @@ function VariantsPanel({ product, readOnly }: { product: AdminProduct; readOnly:
           ))}
         </tbody>
       </table>
+      </div>
       {!readOnly ? (
-        <form
-          className={styles.toolbar}
-          style={{ marginTop: 'var(--space-4)' }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (draft.sku.trim()) add.mutate(undefined);
-          }}
-        >
-          <label className={styles.field}>
-            <span>SKU</span>
-            <input value={draft.sku} onChange={(e) => setDraft({ ...draft, sku: e.target.value })} required />
-          </label>
-          <label className={styles.field}>
-            <span>Tamanho</span>
-            <input value={draft.size ?? ''} onChange={(e) => setDraft({ ...draft, size: e.target.value || null })} />
-          </label>
-          <label className={styles.field}>
-            <span>Cor</span>
-            <input value={draft.color ?? ''} onChange={(e) => setDraft({ ...draft, color: e.target.value || null, colorHex: e.target.value ? (draft.colorHex ?? '#0a0a0a') : null })} />
-          </label>
-          <label className={styles.field}>
-            <span>Estoque inicial</span>
-            <input type="number" min={0} value={draft.stock} onChange={(e) => setDraft({ ...draft, stock: Math.max(0, Number(e.target.value)) })} />
-          </label>
+        <form className={`${styles.variantRow} ${styles.variantAdd}`} noValidate onSubmit={form.handleSubmit((v) => add.mutate(v))}>
+          <div className={styles.field}>
+            <label htmlFor="nv-sku">SKU</label>
+            <input id="nv-sku" autoCapitalize="characters" aria-invalid={ve.sku ? true : undefined} {...form.register('sku')} />
+            {ve.sku ? <p className={styles.fieldError}>{ve.sku.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="nv-size">Tamanho</label>
+            <input id="nv-size" aria-invalid={ve.size ? true : undefined} {...form.register('size')} />
+            {ve.size ? <p className={styles.fieldError}>{ve.size.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="nv-color">Cor</label>
+            <div className={styles.colorInput}>
+              <input type="color" aria-label="Tom da cor" {...form.register('colorHex')} />
+              <input id="nv-color" aria-invalid={ve.color ? true : undefined} {...form.register('color')} />
+            </div>
+            {ve.color ? <p className={styles.fieldError}>{ve.color.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="nv-stock">Estoque inicial</label>
+            <input id="nv-stock" type="number" inputMode="numeric" min={0} step={1} aria-invalid={ve.stock ? true : undefined} {...form.register('stock', { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) })} />
+            {ve.stock ? <p className={styles.fieldError}>{ve.stock.message}</p> : null}
+          </div>
           <Button size="sm" type="submit" loading={add.isPending}>
             Adicionar variante
           </Button>

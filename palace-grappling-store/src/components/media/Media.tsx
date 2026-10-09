@@ -9,7 +9,7 @@ export function Media({ slot, className, tone, eager }: { slot: MediaSlot; class
   return (
     <div className={[styles.frame, className].filter(Boolean).join(' ')}>
       {slot.src ? (
-        <img src={slot.src} alt={slot.alt} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+        <img src={slot.src} alt={slot.alt} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" />
       ) : (
         <Placeholder art={slot.art} label={slot.alt} brief={slot.brief} tone={tone} />
       )}
@@ -25,7 +25,7 @@ export function ProductImage({ product, index = 0, className, eager }: { product
   return (
     <div className={[styles.frame, className].filter(Boolean).join(' ')}>
       {image ? (
-        <img src={image.url} alt={image.alt || product.name} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+        <img src={image.url} alt={image.alt || product.name} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" />
       ) : (
         <Placeholder art={artForProduct(product)} label={product.name} />
       )}

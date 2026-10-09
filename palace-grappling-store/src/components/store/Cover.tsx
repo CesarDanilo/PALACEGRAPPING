@@ -36,7 +36,7 @@ export function CoverBanner({ source }: { source: Parameters<typeof useCoverImag
   if (!cover) return null;
   return (
     <div className={styles.banner}>
-      <img src={cover.url} alt={cover.alt} decoding="async" />
+      <img src={cover.url} alt={cover.alt} decoding="async" fetchPriority="high" />
     </div>
   );
 }

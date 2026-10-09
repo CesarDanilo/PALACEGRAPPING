@@ -1,12 +1,19 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router';
+import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
 import { adminApi, type AdminCatalog, type AdminCategory, type StockMovement } from '@/lib/api/admin';
 import { PageHeader, Pager, Panel, dateTime, errorMessage, useAdminKey, useAdminMutation } from './common';
 import styles from './admin.module.css';
+import { toNumber } from '@/lib/validation';
+
+const slugRule = z.union([z.literal(''), z.string().max(120, 'Máximo de 120 caracteres').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use minúsculas, números e hífens')]);
+const intFromInput = { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) };
 
 const slugify = (s: string) =>
   s
@@ -22,10 +29,11 @@ export function CategoriesPage() {
   const key = useAdminKey();
   const { can } = useAdminSession();
   const categories = useQuery({ queryKey: key('categories'), queryFn: adminApi.categories });
-  const [name, setName] = useState('');
+  const categorySchema = z.object({ name: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(80, 'Máximo de 80 caracteres') });
+  const form = useForm<z.infer<typeof categorySchema>>({ resolver: zodResolver(categorySchema), defaultValues: { name: '' } });
   const create = useAdminMutation(
-    () => adminApi.createCategory({ name, slug: slugify(name), description: null, parentId: null, position: categories.data?.items.length ?? 0, isActive: true }),
-    () => setName(''),
+    ({ name }: { name: string }) => adminApi.createCategory({ name, slug: slugify(name), description: null, parentId: null, position: categories.data?.items.length ?? 0, isActive: true }),
+    () => form.reset({ name: '' }),
   );
   const update = useAdminMutation((v: { id: string; body: Partial<AdminCategory> }) => adminApi.updateCategory(v.id, v.body));
   const err = create.error ?? update.error;
@@ -35,17 +43,12 @@ export function CategoriesPage() {
       <PageHeader title="Categorias" description="Organizam a vitrine e os filtros da loja." />
       {err ? <Alert tone="danger">{errorMessage(err)}</Alert> : null}
       {can('catalog:write') ? (
-        <form
-          className={styles.toolbar}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (name.trim().length >= 2) create.mutate(undefined);
-          }}
-        >
-          <label className={styles.field}>
-            <span>Nova categoria</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Kimonos" />
-          </label>
+        <form className={styles.toolbar} noValidate onSubmit={form.handleSubmit((v) => create.mutate(v))}>
+          <div className={styles.field}>
+            <label htmlFor="cat-name">Nova categoria</label>
+            <input id="cat-name" placeholder="Ex.: Kimonos" aria-invalid={form.formState.errors.name ? true : undefined} {...form.register('name')} />
+            {form.formState.errors.name ? <p className={styles.fieldError}>{form.formState.errors.name.message}</p> : null}
+          </div>
           <Button size="sm" type="submit" loading={create.isPending}>
             Criar
           </Button>
@@ -120,6 +123,19 @@ const movementLabel: Record<StockMovement['type'], string> = {
   RETURN: 'Devolução de cliente',
 };
 
+const movementSchema = z
+  .object({
+    type: z.enum(['INBOUND', 'OUTBOUND', 'ADJUSTMENT']),
+    quantity: z.number({ error: 'Informe um número' }).int('Use um número inteiro').min(0, 'Não pode ser negativo'),
+    reason: z.string().trim().min(2, 'Descreva o motivo').max(200, 'Máximo de 200 caracteres'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.type !== 'ADJUSTMENT' && v.quantity < 1) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Mínimo de 1 unidade' });
+    if (v.type !== 'ADJUSTMENT' && v.quantity > 100_000) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Máximo de 100.000 por movimentação' });
+    if (v.type === 'ADJUSTMENT' && v.quantity > 1_000_000) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Máximo de 1.000.000' });
+  });
+type MovementForm = z.infer<typeof movementSchema>;
+
 export function InventoryPage() {
   const key = useAdminKey();
   const { can } = useAdminSession();
@@ -132,14 +148,13 @@ export function InventoryPage() {
     queryFn: () => adminApi.movements({ variantId, page, pageSize: 30 }),
     placeholderData: keepPreviousData,
   });
-  const [form, setForm] = useState({ type: 'INBOUND' as 'INBOUND' | 'OUTBOUND' | 'ADJUSTMENT', quantity: 1, reason: '' });
+  const form = useForm<MovementForm>({ resolver: zodResolver(movementSchema), defaultValues: { type: 'INBOUND', quantity: 1, reason: '' } });
+  const type = form.watch('type');
+  const me = form.formState.errors;
   const move = useAdminMutation(
-    () =>
-      adminApi.move(
-        variantId!,
-        form.type === 'ADJUSTMENT' ? { type: 'ADJUSTMENT', countedStock: form.quantity, reason: form.reason } : { type: form.type, quantity: form.quantity, reason: form.reason },
-      ),
-    () => setForm((f) => ({ ...f, reason: '' })),
+    (v: MovementForm) =>
+      adminApi.move(variantId!, v.type === 'ADJUSTMENT' ? { type: 'ADJUSTMENT', countedStock: v.quantity, reason: v.reason } : { type: v.type, quantity: v.quantity, reason: v.reason }),
+    () => form.reset({ ...form.getValues(), reason: '' }),
   );
 
   return (
@@ -201,29 +216,25 @@ export function InventoryPage() {
             <Panel title="Registrar movimentação">
               {move.isError ? <Alert tone="danger">{errorMessage(move.error)}</Alert> : null}
               {move.isSuccess ? <Alert tone="success">Saldo atual: {move.data.balance}</Alert> : null}
-              <form
-                className={styles.page}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  move.mutate(undefined);
-                }}
-              >
-                <label className={styles.field}>
-                  <span>Tipo</span>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as typeof form.type })}>
+              <form className={styles.page} noValidate onSubmit={form.handleSubmit((v) => move.mutate(v))}>
+                <div className={styles.field}>
+                  <label htmlFor="mv-type">Tipo</label>
+                  <select id="mv-type" {...form.register('type')}>
                     <option value="INBOUND">Entrada</option>
                     <option value="OUTBOUND">Saída (perda, avaria, brinde)</option>
                     <option value="ADJUSTMENT">Ajuste para saldo contado</option>
                   </select>
-                </label>
-                <label className={styles.field}>
-                  <span>{form.type === 'ADJUSTMENT' ? 'Saldo contado' : 'Quantidade'}</span>
-                  <input type="number" min={form.type === 'ADJUSTMENT' ? 0 : 1} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} required />
-                </label>
-                <label className={styles.field}>
-                  <span>Motivo</span>
-                  <input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} minLength={2} required />
-                </label>
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="mv-qty">{type === 'ADJUSTMENT' ? 'Saldo contado' : 'Quantidade'}</label>
+                  <input id="mv-qty" type="number" inputMode="numeric" step={1} min={type === 'ADJUSTMENT' ? 0 : 1} aria-invalid={me.quantity ? true : undefined} {...form.register('quantity', intFromInput)} />
+                  {me.quantity ? <p className={styles.fieldError}>{me.quantity.message}</p> : null}
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="mv-reason">Motivo</label>
+                  <input id="mv-reason" aria-invalid={me.reason ? true : undefined} {...form.register('reason')} />
+                  {me.reason ? <p className={styles.fieldError}>{me.reason.message}</p> : null}
+                </div>
                 <Button size="sm" type="submit" loading={move.isPending}>
                   Registrar
                 </Button>
@@ -316,102 +327,121 @@ export function CatalogsPage() {
   );
 }
 
+const catalogSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(120, 'Máximo de 120 caracteres'),
+    slug: slugRule,
+    description: z.string().max(5_000, 'Máximo de 5.000 caracteres'),
+    type: z.enum(['GENERAL', 'COLLECTION', 'CAMPAIGN']),
+    isPublic: z.boolean(),
+    isActive: z.boolean(),
+    heroImageUrl: z.union([z.literal(''), z.url({ protocol: /^https?$/, error: 'Use um endereço http(s) válido' }).max(2_000)]),
+    startsAt: z.string(),
+    endsAt: z.string(),
+    productIds: z.array(z.string()).max(500, 'No máximo 500 produtos'),
+  })
+  .refine((v) => !v.startsAt || !v.endsAt || new Date(v.endsAt) > new Date(v.startsAt), { path: ['endsAt'], message: 'O fim deve ser depois do início' });
+type CatalogForm = z.infer<typeof catalogSchema>;
+
 function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDone: () => void }) {
   const key = useAdminKey();
   const products = useQuery({ queryKey: key('products', 'all'), queryFn: () => adminApi.products({ pageSize: 100 }) });
-  const [form, setForm] = useState({
-    name: catalog?.name ?? '',
-    slug: catalog?.slug ?? '',
-    description: catalog?.description ?? '',
-    type: catalog?.type ?? ('COLLECTION' as AdminCatalog['type']),
-    isPublic: catalog?.isPublic ?? true,
-    isActive: catalog?.isActive ?? true,
-    heroImageUrl: catalog?.heroImageUrl ?? '',
-    startsAt: toLocalInput(catalog?.startsAt ?? null),
-    endsAt: toLocalInput(catalog?.endsAt ?? null),
+  const form = useForm<CatalogForm>({
+    resolver: zodResolver(catalogSchema),
+    defaultValues: {
+      name: catalog?.name ?? '',
+      slug: catalog?.slug ?? '',
+      description: catalog?.description ?? '',
+      type: catalog?.type ?? 'COLLECTION',
+      isPublic: catalog?.isPublic ?? true,
+      isActive: catalog?.isActive ?? true,
+      heroImageUrl: catalog?.heroImageUrl ?? '',
+      startsAt: toLocalInput(catalog?.startsAt ?? null),
+      endsAt: toLocalInput(catalog?.endsAt ?? null),
+      productIds: catalog?.productIds ?? [],
+    },
   });
-  const [selected, setSelected] = useState<string[]>(catalog?.productIds ?? []);
-  const save = useAdminMutation(async () => {
+  const { register, formState } = form;
+  const e = formState.errors;
+  const name = form.watch('name');
+  const selected = form.watch('productIds');
+  const save = useAdminMutation(async (v: CatalogForm) => {
     const body = {
-      name: form.name,
-      slug: form.slug || slugify(form.name),
-      description: form.description,
-      type: form.type,
-      isPublic: form.isPublic,
-      isActive: form.isActive,
-      heroImageUrl: form.heroImageUrl || null,
-      startsAt: fromLocalInput(form.startsAt),
-      endsAt: fromLocalInput(form.endsAt),
+      name: v.name,
+      slug: v.slug || slugify(v.name),
+      description: v.description,
+      type: v.type,
+      isPublic: v.isPublic,
+      isActive: v.isActive,
+      heroImageUrl: v.heroImageUrl || null,
+      startsAt: fromLocalInput(v.startsAt),
+      endsAt: fromLocalInput(v.endsAt),
     };
     if (catalog) {
       await adminApi.updateCatalog(catalog.id, body);
-      return adminApi.setCatalogProducts(catalog.id, selected);
+      return adminApi.setCatalogProducts(catalog.id, v.productIds);
     }
-    return adminApi.createCatalog({ ...body, productIds: selected });
+    return adminApi.createCatalog({ ...body, productIds: v.productIds });
   }, onDone);
 
   return (
     <Panel title={catalog ? `Editar ${catalog.name}` : 'Novo catálogo'}>
       {save.isError ? <Alert tone="danger">{errorMessage(save.error)}</Alert> : null}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate(undefined);
-        }}
-        className={styles.page}
-      >
+      <form noValidate onSubmit={form.handleSubmit((v) => save.mutate(v))} className={styles.page}>
         <div className={styles.formGrid}>
-          <label className={styles.field}>
-            <span>Nome</span>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} />
-          </label>
-          <label className={styles.field}>
-            <span>Slug</span>
-            <input value={form.slug} placeholder={slugify(form.name)} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-          </label>
-          <label className={styles.field}>
-            <span>Tipo</span>
-            <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as AdminCatalog['type'] })}>
+          <div className={styles.field}>
+            <label htmlFor="cg-name">Nome</label>
+            <input id="cg-name" aria-invalid={e.name ? true : undefined} {...register('name')} />
+            {e.name ? <p className={styles.fieldError}>{e.name.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cg-slug">Slug</label>
+            <input id="cg-slug" placeholder={slugify(name)} aria-invalid={e.slug ? true : undefined} {...register('slug')} />
+            {e.slug ? <p className={styles.fieldError}>{e.slug.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cg-type">Tipo</label>
+            <select id="cg-type" {...register('type')}>
               <option value="GENERAL">Geral</option>
               <option value="COLLECTION">Coleção</option>
               <option value="CAMPAIGN">Campanha</option>
             </select>
-          </label>
-          <label className={styles.field}>
-            <span>Imagem de capa (URL, opcional)</span>
-            <input type="url" value={form.heroImageUrl} onChange={(e) => setForm({ ...form, heroImageUrl: e.target.value })} />
-          </label>
-          <label className={styles.field}>
-            <span>Início (opcional)</span>
-            <input type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
-          </label>
-          <label className={styles.field}>
-            <span>Fim (opcional; ativa a contagem regressiva)</span>
-            <input type="datetime-local" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
-          </label>
-          <label className={`${styles.field} ${styles.span2}`}>
-            <span>Descrição</span>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </label>
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cg-hero">Imagem de capa (URL, opcional)</label>
+            <input id="cg-hero" type="url" inputMode="url" aria-invalid={e.heroImageUrl ? true : undefined} {...register('heroImageUrl')} />
+            {e.heroImageUrl ? <p className={styles.fieldError}>{e.heroImageUrl.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cg-start">Início (opcional)</label>
+            <input id="cg-start" type="datetime-local" {...register('startsAt')} />
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cg-end">Fim (opcional; ativa a contagem regressiva)</label>
+            <input id="cg-end" type="datetime-local" aria-invalid={e.endsAt ? true : undefined} {...register('endsAt')} />
+            {e.endsAt ? <p className={styles.fieldError}>{e.endsAt.message}</p> : null}
+          </div>
+          <div className={`${styles.field} ${styles.span2}`}>
+            <label htmlFor="cg-desc">Descrição</label>
+            <textarea id="cg-desc" aria-invalid={e.description ? true : undefined} {...register('description')} />
+            {e.description ? <p className={styles.fieldError}>{e.description.message}</p> : null}
+          </div>
           <div className={styles.actions}>
             <label className={styles.check}>
-              <input type="checkbox" checked={form.isPublic} onChange={(e) => setForm({ ...form, isPublic: e.target.checked })} /> Público (abre por slug)
+              <input type="checkbox" {...register('isPublic')} /> Público (abre por slug)
             </label>
             <label className={styles.check}>
-              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Ativo
+              <input type="checkbox" {...register('isActive')} /> Ativo
             </label>
           </div>
         </div>
-        <fieldset className={styles.field} style={{ border: 0, padding: 0 }}>
+        <fieldset className={styles.field} style={{ border: 0, padding: 0, minWidth: 0 }}>
           <legend>Produtos ({selected.length})</legend>
+          {e.productIds ? <p className={styles.fieldError}>{e.productIds.message}</p> : null}
           <div className={styles.picker}>
             {products.data?.items.map((p) => (
               <label key={p.id} className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(p.id)}
-                  onChange={(e) => setSelected((s) => (e.target.checked ? [...s, p.id] : s.filter((x) => x !== p.id)))}
-                />
+                <input type="checkbox" value={p.id} {...register('productIds')} />
                 {p.name} {!p.isActive ? '(inativo)' : ''}
               </label>
             ))}
@@ -432,22 +462,31 @@ function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDo
 
 // ───────────────────────── Links exclusivos ─────────────────────────
 
+const linkSchema = z.object({
+  catalogId: z.string().min(1, 'Escolha um catálogo'),
+  label: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(120, 'Máximo de 120 caracteres'),
+  expiresAt: z.string().refine((v) => !v || new Date(v).getTime() > Date.now(), 'Escolha uma data futura'),
+  maxUses: z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 1_000_000), 'Número inteiro de 1 a 1.000.000'),
+});
+type LinkForm = z.infer<typeof linkSchema>;
+
 export function LinksPage() {
   const key = useAdminKey();
   const { can } = useAdminSession();
   const links = useQuery({ queryKey: key('links'), queryFn: adminApi.links });
   const catalogs = useQuery({ queryKey: key('catalogs'), queryFn: adminApi.catalogs });
-  const [form, setForm] = useState({ catalogId: '', label: '', expiresAt: '', maxUses: '' });
+  const form = useForm<LinkForm>({ resolver: zodResolver(linkSchema), defaultValues: { catalogId: '', label: '', expiresAt: '', maxUses: '' } });
+  const le = form.formState.errors;
   const [copied, setCopied] = useState<string | null>(null);
   const create = useAdminMutation(
-    () =>
+    (v: LinkForm) =>
       adminApi.createLink({
-        catalogId: form.catalogId,
-        label: form.label,
-        expiresAt: fromLocalInput(form.expiresAt),
-        maxUses: form.maxUses ? Number(form.maxUses) : null,
+        catalogId: v.catalogId,
+        label: v.label,
+        expiresAt: fromLocalInput(v.expiresAt),
+        maxUses: v.maxUses === '' ? null : Number(v.maxUses),
       }),
-    () => setForm({ catalogId: form.catalogId, label: '', expiresAt: '', maxUses: '' }),
+    () => form.reset({ catalogId: form.getValues('catalogId'), label: '', expiresAt: '', maxUses: '' }),
   );
   const toggle = useAdminMutation((v: { id: string; isActive: boolean }) => adminApi.updateLink(v.id, { isActive: v.isActive }));
   const urlOf = (token: string) => `${window.location.origin}/c/${token}`;
@@ -459,16 +498,10 @@ export function LinksPage() {
       {create.isError ? <Alert tone="danger">{errorMessage(create.error)}</Alert> : null}
       {can('catalog:write') ? (
         <Panel title="Gerar link">
-          <form
-            className={styles.toolbar}
-            onSubmit={(e) => {
-              e.preventDefault();
-              create.mutate(undefined);
-            }}
-          >
-            <label className={styles.field}>
-              <span>Catálogo</span>
-              <select value={form.catalogId} onChange={(e) => setForm({ ...form, catalogId: e.target.value })} required>
+          <form className={styles.toolbar} noValidate onSubmit={form.handleSubmit((v) => create.mutate(v))}>
+            <div className={styles.field}>
+              <label htmlFor="lk-catalog">Catálogo</label>
+              <select id="lk-catalog" aria-invalid={le.catalogId ? true : undefined} {...form.register('catalogId')}>
                 <option value="">Escolha…</option>
                 {catalogs.data?.items.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -476,19 +509,23 @@ export function LinksPage() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className={styles.field}>
-              <span>Identificação</span>
-              <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Ex.: Equipe de competição" required minLength={2} />
-            </label>
-            <label className={styles.field}>
-              <span>Expira em (opcional)</span>
-              <input type="datetime-local" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
-            </label>
-            <label className={styles.field}>
-              <span>Limite de pedidos (opcional)</span>
-              <input type="number" min={1} value={form.maxUses} onChange={(e) => setForm({ ...form, maxUses: e.target.value })} />
-            </label>
+              {le.catalogId ? <p className={styles.fieldError}>{le.catalogId.message}</p> : null}
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="lk-label">Identificação</label>
+              <input id="lk-label" placeholder="Ex.: Equipe de competição" aria-invalid={le.label ? true : undefined} {...form.register('label')} />
+              {le.label ? <p className={styles.fieldError}>{le.label.message}</p> : null}
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="lk-exp">Expira em (opcional)</label>
+              <input id="lk-exp" type="datetime-local" aria-invalid={le.expiresAt ? true : undefined} {...form.register('expiresAt')} />
+              {le.expiresAt ? <p className={styles.fieldError}>{le.expiresAt.message}</p> : null}
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="lk-max">Limite de pedidos (opcional)</label>
+              <input id="lk-max" type="number" inputMode="numeric" min={1} step={1} aria-invalid={le.maxUses ? true : undefined} {...form.register('maxUses')} />
+              {le.maxUses ? <p className={styles.fieldError}>{le.maxUses.message}</p> : null}
+            </div>
             <Button size="sm" type="submit" loading={create.isPending}>
               Gerar
             </Button>

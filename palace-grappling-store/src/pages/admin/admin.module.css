@@ -84,6 +84,11 @@
   border-bottom: var(--border-width) solid var(--border-subtle);
   text-align: left;
 }
+/* Links em células: área de toque de pelo menos 24 px. */
+.table td a {
+  display: inline-block;
+  padding-block: var(--space-1);
+}
 .table th {
   color: var(--text-secondary);
   font-weight: var(--weight-semibold);
@@ -234,12 +239,14 @@
 .check {
   display: inline-flex;
   align-items: center;
+  min-height: 2.75rem;
+  cursor: pointer;
   gap: var(--space-2);
   font-size: var(--text-sm);
 }
 .check input {
-  width: 1rem;
-  height: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
   accent-color: var(--accent);
 }
 .pill {
@@ -280,7 +287,14 @@
   font-size: var(--text-sm);
 }
 .pager button,
+.linkButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .linkButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
   padding: var(--space-1) var(--space-3);
   border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -356,4 +370,84 @@
   padding: var(--space-2);
   border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-md);
+}
+
+/* Variantes no cadastro: cartões empilhados no celular, linha única a partir de 900 px. */
+.variantList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.variantRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.variantRow {
+  grid-template-areas:
+    'idx idx'
+    'sku sku'
+    'size stock'
+    'color color'
+    'action action';
+}
+.variantRow > .field:nth-of-type(1) { grid-area: sku; }
+.variantRow > .field:nth-of-type(2) { grid-area: size; }
+.variantRow > .field:nth-of-type(3) { grid-area: color; }
+.variantRow > .field:nth-of-type(4) { grid-area: stock; }
+.variantRow > button { grid-area: action; justify-self: start; }
+.variantIndex {
+  grid-area: idx;
+  color: var(--text-muted);
+  font-family: var(--font-label);
+  font-size: var(--text-xs);
+}
+.variantAdd {
+  margin-top: var(--space-4);
+  grid-template-areas:
+    'sku sku'
+    'size stock'
+    'color color'
+    'action action';
+}
+.colorInput {
+  display: flex;
+  gap: var(--space-2);
+}
+.colorInput input[type='color'] {
+  flex: none;
+  width: 2.75rem;
+  padding: var(--space-1);
+}
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+@media (min-width: 900px) {
+  .variantRow {
+    grid-template-columns: 2rem minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 0;
+    border: 0;
+  }
+  /* Alinha o botão e o número com os campos (abaixo dos rótulos), mesmo com mensagens de erro. */
+  .variantRow > button {
+    margin-top: 1.55rem;
+  }
+  .variantRow {
+    grid-template-areas: 'idx sku size color stock action';
+  }
+  .variantIndex {
+    padding-top: 2.3rem;
+  }
+  .variantAdd {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto;
+    grid-template-areas: 'sku size color stock action';
+  }
 }

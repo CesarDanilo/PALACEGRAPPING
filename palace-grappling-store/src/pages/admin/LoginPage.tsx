@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useLocation, useNavigate } from 'react-router';
-import { z } from 'zod';
+import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Feedback';
 import { TextField } from '@/components/ui/Field';

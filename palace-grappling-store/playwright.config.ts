@@ -11,8 +11,13 @@ export default defineConfig({
   reporter: [['list']],
   use: { baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5190', trace: 'retain-on-failure' },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // Fluxo de compra e painel em um desktop e um celular emulados.
+    { name: 'desktop', testMatch: /store.spec/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile', testMatch: /store.spec/, use: { ...devices['Pixel 7'] } },
+    // 320, 390, 768 e 1280 px: cada teste define a própria viewport.
+    { name: 'responsive', testMatch: /responsive.spec/, use: { ...devices['Desktop Chrome'] } },
+    // Só com E2E_CSP=1, contra o build (vite preview).
+    { name: 'csp', testMatch: /csp.spec/, use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

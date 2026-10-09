@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
+import { CloseIcon, MenuIcon } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
@@ -22,19 +24,68 @@ const sections = [
 export function AdminLayout() {
   const { status, profile, membership, logout, selectTenant, can } = useAdminSession();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  // Abaixo de 1024 px o menu é uma gaveta: fecha ao navegar e com Esc.
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        menuButton.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    document.querySelector<HTMLElement>('#admin-menu a[aria-current="page"], #admin-menu a')?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   if (status === 'loading') return <LoadingState label="Verificando sessão…" />;
   if (status === 'anonymous') return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
+
+  const close = () => {
+    setMenuOpen(false);
+    menuButton.current?.focus();
+  };
 
   return (
     <div className={styles.shell}>
       <a href="#admin-conteudo" className="skip-link">
         Pular para o conteúdo
       </a>
-      <aside className={styles.sidebar}>
+      <header className={styles.topbar}>
+        <button
+          ref={menuButton}
+          type="button"
+          className={styles.iconButton}
+          aria-label="Abrir menu do painel"
+          aria-expanded={menuOpen}
+          aria-controls="admin-menu"
+          onClick={() => setMenuOpen(true)}
+        >
+          <MenuIcon />
+        </button>
         <p className={styles.brand}>
           PALACE <span>ADMIN</span>
         </p>
+        <span className={styles.topbarTenant}>{membership?.tenant.name}</span>
+      </header>
+      {menuOpen ? <div className={styles.backdrop} onClick={close} aria-hidden="true" /> : null}
+      <aside id="admin-menu" className={`${styles.sidebar} ${menuOpen ? styles.open : ''}`} aria-label="Menu do painel">
+        <div className={styles.sidebarTop}>
+          <p className={styles.brand}>
+            PALACE <span>ADMIN</span>
+          </p>
+          <button type="button" className={`${styles.iconButton} ${styles.closeButton}`} aria-label="Fechar menu do painel" onClick={close}>
+            <CloseIcon />
+          </button>
+        </div>
         {profile && profile.memberships.length > 1 ? (
           <label className={styles.tenant}>
             <span className="visually-hidden">Loja</span>

@@ -1,22 +1,91 @@
 /* Painel: superfícies escuras funcionais, cantos levemente arredondados, foco em leitura. */
 .shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
   min-height: 100vh;
   background: var(--surface-sunken);
 }
+
+/* Barra superior (abaixo de 1024 px): abre o menu em gaveta. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: 0 var(--gutter) 0 calc(var(--gutter) - var(--space-2));
+  background: var(--surface-raised);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+}
+.topbarTenant {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.iconButton {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.iconButton:hover {
+  background: var(--surface-control);
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  background: rgba(0, 0, 0, 0.6);
+}
+
 .sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: calc(var(--z-drawer) + 1);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-5);
+  width: min(86vw, 300px);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface-raised);
-  border-bottom: var(--border-width) solid var(--border-subtle);
+  border-right: var(--border-width) solid var(--border-subtle);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    visibility 0s linear var(--duration-base);
+}
+.sidebar.open {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .brand {
   font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: var(--weight-display);
   letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 .brand span {
   color: var(--accent);
@@ -35,15 +104,17 @@
 }
 .nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .nav a {
-  display: block;
-  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   text-decoration: none;
@@ -60,6 +131,7 @@
 }
 .user {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   margin-top: auto;
@@ -77,18 +149,35 @@
   min-width: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar.open {
+    transition: none;
+  }
+}
+
 @media (min-width: 1024px) {
   .shell {
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .topbar,
+  .backdrop,
+  .closeButton {
+    display: none;
   }
   .sidebar {
     position: sticky;
+    inset: auto;
     top: 0;
+    z-index: auto;
+    width: auto;
     height: 100vh;
-    border-bottom: 0;
-    border-right: var(--border-width) solid var(--border-subtle);
+    transform: none;
+    visibility: visible;
+    transition: none;
   }
-  .nav {
-    flex-direction: column;
+  .nav a {
+    min-height: 2.25rem;
   }
 }

@@ -225,3 +225,13 @@
     justify-self: end;
   }
 }
+
+/* 320–399 px: o acompanhamento de pedidos vai para o menu, para caberem marca, busca e sacola. */
+@media (max-width: 399px) {
+  .bar {
+    gap: var(--space-1);
+  }
+  .ordersLink {
+    display: none;
+  }
+}

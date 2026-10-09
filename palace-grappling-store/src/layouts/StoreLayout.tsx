@@ -108,7 +108,7 @@ export function StoreLayout() {
             >
               {searchOpen ? <CloseIcon /> : <SearchIcon />}
             </button>
-            <Link to="/pedidos" className={styles.iconButton} aria-label="Meus pedidos">
+            <Link to="/pedidos" className={`${styles.iconButton} ${styles.ordersLink}`} aria-label="Meus pedidos">
               <UserIcon />
             </Link>
             <Link to="/carrinho" className={`${styles.iconButton} ${styles.cart}`} aria-label={`Carrinho, ${count} ${count === 1 ? 'item' : 'itens'}`}>
@@ -145,6 +145,9 @@ export function StoreLayout() {
                     <Link to={item.to}>{item.label}</Link>
                   </li>
                 ))}
+                <li>
+                  <Link to="/pedidos">Meus pedidos</Link>
+                </li>
               </ol>
             </nav>
             <BeltBar />

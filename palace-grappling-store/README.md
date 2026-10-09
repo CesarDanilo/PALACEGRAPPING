@@ -62,7 +62,7 @@ Em desenvolvimento o Vite encaminha `/api` para a API (`DEV_API_PROXY_TARGET`). 
 
 Para acessar o painel, abra `http://localhost:5190/admin/login` e entre com o usuário do seed da API (`admin@example.com` e a senha definida em `SEED_ADMIN_PASSWORD`).
 
-Scripts: `dev`, `build` (typecheck + build), `preview`, `typecheck`, `lint`, `test`, `test:e2e`.
+Scripts: `dev`, `build` (typecheck + build), `preview`, `typecheck`, `lint`, `test`, `test:e2e`, `check:bundle`.
 
 ## Variáveis de ambiente
 
@@ -140,7 +140,7 @@ Nenhuma URL leva dados de cliente:
 
 - **Fotos de produto:** envie pelo painel em *Produtos → produto → Fotos*. Elas vão para o Supabase Storage com o texto alternativo cadastrado.
 - **Fotos editoriais** (hero, linhas, manifesto, inspiração, sobre):
-  1. Coloque o arquivo em `public/media/`.
+  1. Converta a foto para WebP com até 1800 px de largura e coloque em `public/media/`.
   2. Em `src/content/media.ts`, preencha o `src` do slot e revise o `alt`.
 
   Cada slot traz um `brief` com a foto esperada.
@@ -153,15 +153,32 @@ Enquanto `src` for `null`, a loja mostra uma ilustração geométrica com o selo
 - **Logotipo e monograma:** `src/brand/Brand.tsx` (SVG).
 - **Textos de marca:** `src/pages/store/HomePage.tsx` e `StorePages.tsx`.
 
+## Segurança no navegador
+
+- **Cabeçalhos:** definidos em `security-headers.ts` e repetidos em `vercel.json` e `nginx.conf` (um teste acusa diferença). A CSP só permite scripts, estilos e fontes da própria origem, sem `unsafe-inline` nem `eval`; imagens de qualquer HTTPS (Supabase Storage). O `vite preview` envia os mesmos cabeçalhos; o servidor de desenvolvimento não usa CSP.
+- **Zod sem eval:** importe `z` de `@/lib/zod` (modo jitless). O ESLint proíbe importar `zod` direto.
+- **Validação:** os formulários usam React Hook Form + Zod com as regras de `src/lib/validation.ts` (telefone com DDD, CEP, UF, nome e sobrenome, SKU, valores e estoque inteiros e não negativos, senha). A API valida tudo de novo; a validação do navegador é só conveniência.
+- **Segredos:** nada secreto pode ter prefixo `VITE_`. `npm run check:bundle` procura chaves, tokens e strings de conexão em `dist/`.
+
 ## Testes
 
 ```bash
-npm test             # 20 testes Vitest
-npm run test:e2e     # 6 testes Playwright (desktop + mobile)
+npm test               # Vitest: 36 testes
+npm run test:e2e       # Playwright: 18 testes (desktop, Pixel 7 e 320/390/768/1280 px)
+npm run build && npm run check:bundle
+```
+
+CSP contra o build de produção:
+
+```bash
+npm run build
+npx vite preview --port 4190
+E2E_BASE_URL=http://localhost:4190 E2E_CSP=1 npx playwright test --project=csp
 ```
 
 **Vitest**
 - Dinheiro, seleção obrigatória de variante, carrinho e schema do checkout.
+- Regras de validação (telefone, CEP, nome, SKU, senha, valores e estoque) e cabeçalhos de segurança iguais em Vercel, Nginx e preview.
 - Card de produto: o "+" só adiciona direto quando há uma única variante, há selo de esgotado e a ilustração vem marcada como temporária.
 - Mídia oficial e contagem regressiva.
 - Painel: redirecionamento sem sessão, login com `Authorization`/`X-Tenant-Id` e erro de credenciais; cabeçalho `X-Store`.
@@ -170,6 +187,12 @@ npm run test:e2e     # 6 testes Playwright (desktop + mobile)
 - Compra completa: variante obrigatória, termos obrigatórios e pedido criado aguardando pagamento.
 - Link exclusivo inválido.
 - Painel exigindo login e listando o pedido.
+- Em 320, 390, 768 e 1280 px: Home, Loja, Categoria, Produto, Carrinho, Checkout e, no painel, Painel, Cadastro de produto, Estoque, Pedidos, Financeiro e Configurações sem rolagem horizontal e com todos os campos rotulados; menu do painel em gaveta abaixo de 1024 px (abre, fecha ao navegar, Esc devolve o foco).
+- Mensagens de validação no checkout, no cadastro de produto (SKU repetido, estoque negativo, promoção maior que o preço) e na troca de senha, sem chamar a API.
+- Teclado: link "Pular para o conteúdo" e foco visível.
+- Sem violações de CSP no build (projeto `csp`).
+
+As larguras são **emulação de viewport** no Chromium (com toque e user agent móvel abaixo de 768 px), não aparelhos físicos.
 
 A API precisa estar no ar com o seed, e `E2E_ADMIN_PASSWORD` deve ser igual a `SEED_ADMIN_PASSWORD`. Os testes também rodam contra a stack Docker: `E2E_BASE_URL=http://localhost:8090 npm run test:e2e`.
 

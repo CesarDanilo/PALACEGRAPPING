@@ -1,13 +1,20 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
 import { adminApi, type AdminOrder, type Settings, type Transaction } from '@/lib/api/admin';
-import type { OrderStatus } from '@/lib/api/types';
+import { ApiError, api, session } from '@/lib/api/client';
+import type { LoginResponse, OrderStatus } from '@/lib/api/types';
+import { centsSchema, emailSchema, passwordSchema, phoneSchema, toNumber } from '@/lib/validation';
 import { MoneyField, PageHeader, Pager, Panel, StatusPill, date, dateTime, errorMessage, money, orderStatusText, useAdminKey, useAdminMutation } from './common';
 import styles from './admin.module.css';
+
+const intInput = { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) };
 
 const sourceLabel: Record<AdminOrder['source'], string> = { STOREFRONT: 'Loja', CATALOG: 'Catálogo', CATALOG_LINK: 'Link exclusivo', ADMIN: 'Painel' };
 
@@ -212,11 +219,11 @@ export function OrderDetailPage() {
                   <div className={styles.formGrid}>
                     <label className={styles.field}>
                       <span>Transportadora</span>
-                      <input value={carrier ?? order.shippingCarrier ?? ''} onChange={(e) => setCarrier(e.target.value)} />
+                      <input maxLength={80} value={carrier ?? order.shippingCarrier ?? ''} onChange={(e) => setCarrier(e.target.value)} />
                     </label>
                     <label className={styles.field}>
                       <span>Código de rastreio</span>
-                      <input value={tracking ?? order.trackingCode ?? ''} onChange={(e) => setTracking(e.target.value)} />
+                      <input maxLength={80} value={tracking ?? order.trackingCode ?? ''} onChange={(e) => setTracking(e.target.value)} />
                     </label>
                   </div>
                 ) : null}
@@ -227,7 +234,7 @@ export function OrderDetailPage() {
                 ) : null}
                 <label className={styles.field}>
                   <span>Observação (vai para o histórico)</span>
-                  <input value={note} onChange={(e) => setNote(e.target.value)} />
+                  <input maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
                 </label>
                 <div className={styles.actions}>
                   {actions.map((a) => (
@@ -512,6 +519,23 @@ export function FinancePage() {
   );
 }
 
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Informe a data');
+const entrySchema = z
+  .object({
+    description: z.string().trim().min(2, 'Mínimo de 2 caracteres').max(200, 'Máximo de 200 caracteres'),
+    amount: z.number({ error: 'Informe o valor' }).int().positive('O valor deve ser maior que zero').max(999_999_999_999, 'Valor muito alto').nullable(),
+    categoryId: z.string(),
+    competenceDate: isoDay,
+    paid: z.boolean(),
+    paidAt: z.string(),
+    paymentMethod: z.string().trim().max(40, 'Máximo de 40 caracteres'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.amount == null) ctx.addIssue({ code: 'custom', path: ['amount'], message: 'Informe o valor' });
+    if (v.paid && !/^\d{4}-\d{2}-\d{2}$/.test(v.paidAt)) ctx.addIssue({ code: 'custom', path: ['paidAt'], message: 'Informe a data do pagamento' });
+  });
+type EntryForm = z.infer<typeof entrySchema>;
+
 export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
   const key = useAdminKey();
   const { can } = useAdminSession();
@@ -520,20 +544,24 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
   const list = useQuery({ queryKey: key('transactions', kind, status, page), queryFn: () => adminApi.transactions({ kind, status, page, pageSize: 25 }), placeholderData: keepPreviousData });
   const categories = useQuery({ queryKey: key('finance-categories'), queryFn: adminApi.financeCategories });
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({ description: '', amount: null as number | null, categoryId: '', competenceDate: today, paid: true, paidAt: today, paymentMethod: '' });
+  const blank: EntryForm = { description: '', amount: null, categoryId: '', competenceDate: today, paid: true, paidAt: today, paymentMethod: '' };
+  const form = useForm<EntryForm>({ resolver: zodResolver(entrySchema), defaultValues: blank });
+  const fe = form.formState.errors;
+  const paid = form.watch('paid');
+  // A chave remonta o campo de valor (que guarda o texto digitado) depois de salvar.
   const [formKey, setFormKey] = useState(0);
   const create = useAdminMutation(
-    () =>
+    (v: EntryForm) =>
       adminApi.createEntry(kind, {
-        description: form.description,
-        amount: form.amount ?? 0,
-        categoryId: form.categoryId || null,
-        competenceDate: form.competenceDate,
-        paidAt: form.paid ? new Date(`${form.paidAt}T12:00:00Z`).toISOString() : null,
-        paymentMethod: form.paymentMethod || null,
+        description: v.description,
+        amount: v.amount ?? 0,
+        categoryId: v.categoryId || null,
+        competenceDate: v.competenceDate,
+        paidAt: v.paid ? new Date(`${v.paidAt}T12:00:00Z`).toISOString() : null,
+        paymentMethod: v.paymentMethod || null,
       }),
     () => {
-      setForm((f) => ({ ...f, description: '', amount: null }));
+      form.reset({ ...form.getValues(), description: '', amount: null });
       setFormKey((k) => k + 1);
     },
   );
@@ -553,22 +581,20 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
       {err ? <Alert tone="danger">{errorMessage(err)}</Alert> : null}
       {can('finance:write') ? (
         <Panel title={kind === 'INCOME' ? 'Nova receita avulsa' : 'Nova despesa'}>
-          <form
-            key={formKey}
-            className={styles.formGrid}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (form.amount && form.amount > 0) create.mutate(undefined);
-            }}
-          >
-            <label className={styles.field}>
-              <span>Descrição</span>
-              <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required minLength={2} />
-            </label>
-            <MoneyField label="Valor" value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} required />
-            <label className={styles.field}>
-              <span>Categoria</span>
-              <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+          <form className={styles.formGrid} noValidate onSubmit={form.handleSubmit((v) => create.mutate(v))}>
+            <div className={styles.field}>
+              <label htmlFor="en-desc">Descrição</label>
+              <input id="en-desc" aria-invalid={fe.description ? true : undefined} {...form.register('description')} />
+              {fe.description ? <p className={styles.fieldError}>{fe.description.message}</p> : null}
+            </div>
+            <Controller
+              control={form.control}
+              name="amount"
+              render={({ field }) => <MoneyField key={formKey} label="Valor" value={field.value} onChange={field.onChange} error={fe.amount?.message} />}
+            />
+            <div className={styles.field}>
+              <label htmlFor="en-cat">Categoria</label>
+              <select id="en-cat" {...form.register('categoryId')}>
                 <option value="">Sem categoria</option>
                 {categories.data?.items
                   .filter((c) => c.kind === kind)
@@ -578,24 +604,27 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
                     </option>
                   ))}
               </select>
-            </label>
-            <label className={styles.field}>
-              <span>Competência</span>
-              <input type="date" value={form.competenceDate} onChange={(e) => setForm({ ...form, competenceDate: e.target.value })} required />
-            </label>
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="en-comp">Competência</label>
+              <input id="en-comp" type="date" aria-invalid={fe.competenceDate ? true : undefined} {...form.register('competenceDate')} />
+              {fe.competenceDate ? <p className={styles.fieldError}>{fe.competenceDate.message}</p> : null}
+            </div>
             <label className={styles.check}>
-              <input type="checkbox" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} /> {kind === 'INCOME' ? 'Já recebida' : 'Já paga'}
+              <input type="checkbox" {...form.register('paid')} /> {kind === 'INCOME' ? 'Já recebida' : 'Já paga'}
             </label>
-            {form.paid ? (
-              <label className={styles.field}>
-                <span>{kind === 'INCOME' ? 'Recebida em' : 'Paga em'}</span>
-                <input type="date" value={form.paidAt} onChange={(e) => setForm({ ...form, paidAt: e.target.value })} required />
-              </label>
+            {paid ? (
+              <div className={styles.field}>
+                <label htmlFor="en-paid">{kind === 'INCOME' ? 'Recebida em' : 'Paga em'}</label>
+                <input id="en-paid" type="date" aria-invalid={fe.paidAt ? true : undefined} {...form.register('paidAt')} />
+                {fe.paidAt ? <p className={styles.fieldError}>{fe.paidAt.message}</p> : null}
+              </div>
             ) : null}
-            <label className={styles.field}>
-              <span>Forma de pagamento</span>
-              <input value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} placeholder="Pix, boleto, cartão…" />
-            </label>
+            <div className={styles.field}>
+              <label htmlFor="en-method">Forma de pagamento</label>
+              <input id="en-method" placeholder="Pix, boleto, cartão…" aria-invalid={fe.paymentMethod ? true : undefined} {...form.register('paymentMethod')} />
+              {fe.paymentMethod ? <p className={styles.fieldError}>{fe.paymentMethod.message}</p> : null}
+            </div>
             <div>
               <Button size="sm" type="submit" loading={create.isPending}>
                 Registrar
@@ -772,6 +801,7 @@ export function SettingsPage() {
     <div className={styles.page}>
       <PageHeader title="Configurações" description="Regras comerciais desta loja." />
       <SettingsForm initial={settings.data} readOnly={!can('settings:write')} />
+      <PasswordPanel />
       {members.data ? (
         <Panel title="Equipe">
           <table className={styles.table}>
@@ -799,65 +829,96 @@ export function SettingsPage() {
   );
 }
 
+const settingsSchema = z
+  .object({
+    shippingMode: z.enum(['FLAT_RATE', 'FREE']),
+    shippingFlatRate: centsSchema,
+    freeShippingThreshold: centsSchema.nullable(),
+    pendingPaymentTtlMinutes: z.number({ error: 'Informe um número' }).int('Use minutos inteiros').min(10, 'Mínimo de 10 minutos').max(10_080, 'Máximo de 7 dias (10.080 min)'),
+    lowStockThreshold: z.number({ error: 'Informe um número' }).int('Use um número inteiro').min(0, 'Não pode ser negativo').max(1000, 'Máximo de 1.000'),
+    orderNumberPrefix: z.string().trim().max(8, 'Máximo de 8 caracteres').regex(/^[A-Za-z0-9-]*$/, 'Letras, números e hífen'),
+    contactEmail: z.union([z.literal(''), emailSchema]),
+    contactPhone: z.union([z.literal(''), phoneSchema]),
+    termsUrl: z.union([z.literal(''), z.url({ protocol: /^https?$/, error: 'Use um endereço http(s) válido' }).max(2_000)]),
+  });
+type SettingsFormIn = z.input<typeof settingsSchema>;
+type SettingsFormOut = z.output<typeof settingsSchema>;
+
 function SettingsForm({ initial, readOnly }: { initial: Settings; readOnly: boolean }) {
-  const [form, setForm] = useState(initial);
-  const save = useAdminMutation(() =>
+  const form = useForm<SettingsFormIn, unknown, SettingsFormOut>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      shippingMode: initial.shippingMode,
+      shippingFlatRate: initial.shippingFlatRate,
+      freeShippingThreshold: initial.freeShippingThreshold,
+      pendingPaymentTtlMinutes: initial.pendingPaymentTtlMinutes,
+      lowStockThreshold: initial.lowStockThreshold,
+      orderNumberPrefix: initial.orderNumberPrefix,
+      contactEmail: initial.contactEmail ?? '',
+      contactPhone: initial.contactPhone ?? '',
+      termsUrl: initial.termsUrl ?? '',
+    },
+  });
+  const e = form.formState.errors;
+  const mode = form.watch('shippingMode');
+  const save = useAdminMutation((v: SettingsFormOut) =>
     adminApi.updateSettings({
-      ...form,
-      contactEmail: form.contactEmail || null,
-      contactPhone: form.contactPhone || null,
-      termsUrl: form.termsUrl || null,
-      orderNumberPrefix: form.orderNumberPrefix.toUpperCase(),
+      ...v,
+      contactEmail: v.contactEmail || null,
+      contactPhone: v.contactPhone || null,
+      termsUrl: v.termsUrl || null,
+      orderNumberPrefix: v.orderNumberPrefix.toUpperCase(),
     }),
   );
   return (
     <Panel title="Vendas e entrega">
       {save.isError ? <Alert tone="danger">{errorMessage(save.error)}</Alert> : null}
       {save.isSuccess ? <Alert tone="success">Configurações salvas.</Alert> : null}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate(undefined);
-        }}
-      >
-        <fieldset disabled={readOnly} className={styles.formGrid} style={{ border: 0, padding: 0, margin: 0 }}>
-          <label className={styles.field}>
-            <span>Frete</span>
-            <select value={form.shippingMode} onChange={(e) => setForm({ ...form, shippingMode: e.target.value as Settings['shippingMode'] })}>
+      <form noValidate onSubmit={form.handleSubmit((v) => save.mutate(v))}>
+        <fieldset disabled={readOnly} className={styles.formGrid} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+          <div className={styles.field}>
+            <label htmlFor="st-ship">Frete</label>
+            <select id="st-ship" {...form.register('shippingMode')}>
               <option value="FLAT_RATE">Valor fixo</option>
               <option value="FREE">Sempre grátis</option>
             </select>
-          </label>
-          {form.shippingMode === 'FLAT_RATE' ? (
+          </div>
+          {mode === 'FLAT_RATE' ? (
             <>
-              <MoneyField label="Valor do frete" value={form.shippingFlatRate} onChange={(v) => setForm({ ...form, shippingFlatRate: v ?? 0 })} />
-              <MoneyField label="Frete grátis acima de (opcional)" optional value={form.freeShippingThreshold} onChange={(v) => setForm({ ...form, freeShippingThreshold: v })} />
+              <Controller control={form.control} name="shippingFlatRate" render={({ field }) => <MoneyField label="Valor do frete" value={field.value} onChange={(v) => field.onChange(v ?? 0)} error={e.shippingFlatRate?.message} />} />
+              <Controller control={form.control} name="freeShippingThreshold" render={({ field }) => <MoneyField label="Frete grátis acima de (opcional)" optional value={field.value} onChange={field.onChange} error={e.freeShippingThreshold?.message} />} />
             </>
           ) : null}
-          <label className={styles.field}>
-            <span>Prazo para pagamento (minutos)</span>
-            <input type="number" min={10} max={10080} value={form.pendingPaymentTtlMinutes} onChange={(e) => setForm({ ...form, pendingPaymentTtlMinutes: Number(e.target.value) })} />
-          </label>
-          <label className={styles.field}>
-            <span>Alerta de estoque baixo (unidades)</span>
-            <input type="number" min={0} value={form.lowStockThreshold} onChange={(e) => setForm({ ...form, lowStockThreshold: Number(e.target.value) })} />
-          </label>
-          <label className={styles.field}>
-            <span>Prefixo do número do pedido</span>
-            <input maxLength={8} value={form.orderNumberPrefix} onChange={(e) => setForm({ ...form, orderNumberPrefix: e.target.value.replace(/[^A-Za-z0-9-]/g, '') })} />
-          </label>
-          <label className={styles.field}>
-            <span>E-mail de contato</span>
-            <input type="email" value={form.contactEmail ?? ''} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
-          </label>
-          <label className={styles.field}>
-            <span>Telefone / WhatsApp</span>
-            <input value={form.contactPhone ?? ''} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-          </label>
-          <label className={styles.field}>
-            <span>URL dos termos oficiais (opcional)</span>
-            <input type="url" value={form.termsUrl ?? ''} onChange={(e) => setForm({ ...form, termsUrl: e.target.value })} />
-          </label>
+          <div className={styles.field}>
+            <label htmlFor="st-ttl">Prazo para pagamento (minutos)</label>
+            <input id="st-ttl" type="number" inputMode="numeric" min={10} max={10080} step={1} aria-invalid={e.pendingPaymentTtlMinutes ? true : undefined} {...form.register('pendingPaymentTtlMinutes', intInput)} />
+            {e.pendingPaymentTtlMinutes ? <p className={styles.fieldError}>{e.pendingPaymentTtlMinutes.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="st-low">Alerta de estoque baixo (unidades)</label>
+            <input id="st-low" type="number" inputMode="numeric" min={0} max={1000} step={1} aria-invalid={e.lowStockThreshold ? true : undefined} {...form.register('lowStockThreshold', intInput)} />
+            {e.lowStockThreshold ? <p className={styles.fieldError}>{e.lowStockThreshold.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="st-prefix">Prefixo do número do pedido</label>
+            <input id="st-prefix" maxLength={8} autoCapitalize="characters" aria-invalid={e.orderNumberPrefix ? true : undefined} {...form.register('orderNumberPrefix')} />
+            {e.orderNumberPrefix ? <p className={styles.fieldError}>{e.orderNumberPrefix.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="st-email">E-mail de contato</label>
+            <input id="st-email" type="email" inputMode="email" autoComplete="email" aria-invalid={e.contactEmail ? true : undefined} {...form.register('contactEmail')} />
+            {e.contactEmail ? <p className={styles.fieldError}>{e.contactEmail.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="st-phone">Telefone / WhatsApp</label>
+            <input id="st-phone" type="tel" inputMode="tel" autoComplete="tel" aria-invalid={e.contactPhone ? true : undefined} {...form.register('contactPhone')} />
+            {e.contactPhone ? <p className={styles.fieldError}>{e.contactPhone.message}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="st-terms">URL dos termos oficiais (opcional)</label>
+            <input id="st-terms" type="url" inputMode="url" aria-invalid={e.termsUrl ? true : undefined} {...form.register('termsUrl')} />
+            {e.termsUrl ? <p className={styles.fieldError}>{e.termsUrl.message}</p> : null}
+          </div>
           {!readOnly ? (
             <div className={styles.span2}>
               <Button size="sm" type="submit" loading={save.isPending}>
@@ -866,6 +927,63 @@ function SettingsForm({ initial, readOnly }: { initial: Settings; readOnly: bool
             </div>
           ) : null}
         </fieldset>
+      </form>
+    </Panel>
+  );
+}
+
+const passwordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Informe a senha atual').max(128),
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, { path: ['confirmPassword'], message: 'As senhas não conferem' })
+  .refine((v) => v.newPassword !== v.currentPassword, { path: ['newPassword'], message: 'Use uma senha diferente da atual' });
+type PasswordForm = z.infer<typeof passwordFormSchema>;
+
+/** Troca da própria senha. A API revoga as outras sessões e devolve uma nova. */
+function PasswordPanel() {
+  const form = useForm<PasswordForm>({ resolver: zodResolver(passwordFormSchema), defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' } });
+  const e = form.formState.errors;
+  const change = useMutation({
+    mutationFn: (v: PasswordForm) => api<LoginResponse>('/auth/password', { method: 'POST', body: v, admin: true }),
+    onSuccess: (res) => {
+      session.set(res.accessToken);
+      form.reset();
+    },
+    onError: (error) => {
+      const issues = error instanceof ApiError ? (error.details as { issues?: { path: string; message: string }[] } | undefined)?.issues : undefined;
+      issues?.forEach((i) => {
+        if (i.path === 'currentPassword' || i.path === 'newPassword' || i.path === 'confirmPassword') form.setError(i.path, { message: i.message });
+      });
+    },
+  });
+  return (
+    <Panel title="Sua senha">
+      {change.isSuccess ? <Alert tone="success">Senha alterada. As outras sessões foram encerradas.</Alert> : null}
+      {change.isError && !(change.error instanceof ApiError && change.error.code === 'VALIDATION_ERROR') ? <Alert tone="danger">{errorMessage(change.error)}</Alert> : null}
+      <form className={styles.formGrid} noValidate onSubmit={form.handleSubmit((v) => change.mutate(v))}>
+        <div className={`${styles.field} ${styles.span2}`}>
+          <label htmlFor="pw-current">Senha atual</label>
+          <input id="pw-current" type="password" autoComplete="current-password" aria-invalid={e.currentPassword ? true : undefined} {...form.register('currentPassword')} />
+          {e.currentPassword ? <p className={styles.fieldError}>{e.currentPassword.message}</p> : null}
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="pw-new">Nova senha</label>
+          <input id="pw-new" type="password" autoComplete="new-password" aria-describedby="pw-hint" aria-invalid={e.newPassword ? true : undefined} {...form.register('newPassword')} />
+          {e.newPassword ? <p className={styles.fieldError}>{e.newPassword.message}</p> : <p id="pw-hint" className={styles.muted}>12 ou mais caracteres, com letras e números.</p>}
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="pw-confirm">Confirme a nova senha</label>
+          <input id="pw-confirm" type="password" autoComplete="new-password" aria-invalid={e.confirmPassword ? true : undefined} {...form.register('confirmPassword')} />
+          {e.confirmPassword ? <p className={styles.fieldError}>{e.confirmPassword.message}</p> : null}
+        </div>
+        <div className={styles.span2}>
+          <Button size="sm" type="submit" loading={change.isPending}>
+            Alterar senha
+          </Button>
+        </div>
       </form>
     </Panel>
   );

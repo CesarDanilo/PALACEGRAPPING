@@ -193,3 +193,10 @@
 .toast a {
   color: inherit;
 }
+
+/* Links dentro de estados vazios/erro: área de toque confortável. */
+.stateBody a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}

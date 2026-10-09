@@ -2,6 +2,7 @@
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
+import { securityHeaders } from './security-headers';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -14,7 +15,9 @@ export default defineConfig(({ mode }) => {
       // Em desenvolvimento a loja e a API ficam na mesma origem (cookies de sessão SameSite=Lax).
       proxy: { '/api': { target: env.DEV_API_PROXY_TARGET || 'http://localhost:3350', changeOrigin: true } },
     },
-    preview: { port: 5190 },
+    // O preview serve o build com os mesmos cabeçalhos de produção (inclusive CSP).
+    // O servidor de desenvolvimento não usa CSP: o HMR do Vite injeta scripts inline.
+    preview: { port: 5190, headers: securityHeaders },
     test: {
       environment: 'jsdom',
       setupFiles: ['tests/setup.ts'],

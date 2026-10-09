@@ -13,3 +13,7 @@ playwright-report/
 .admin.mjs
 .order.mjs
 .scroll.mjs
+.audit320.mjs
+.audit.mjs
+.why.mjs
+.shots.mjs

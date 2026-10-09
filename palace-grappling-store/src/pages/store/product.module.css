@@ -3,6 +3,7 @@
 }
 .product {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-8);
   padding-top: var(--space-6);
 }
@@ -13,6 +14,8 @@
   color: var(--text-muted);
 }
 .breadcrumb a {
+  display: inline-block;
+  padding-block: var(--space-2);
   color: var(--text-secondary);
   text-decoration: none;
 }
@@ -50,12 +53,15 @@
   object-fit: cover;
 }
 .buy {
+  min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-5);
 }
 .title {
   font-size: var(--display-md);
+  overflow-wrap: anywhere;
 }
 .priceRow {
   display: flex;
@@ -64,6 +70,7 @@
   gap: var(--space-4);
 }
 .option {
+  min-width: 0;
   display: grid;
   gap: var(--space-3);
   margin: 0;
@@ -143,8 +150,11 @@
   gap: var(--space-3);
 }
 .addRow > button {
+  flex: 1;
   min-width: 0;
   padding-inline: var(--space-4);
+  white-space: normal;
+  line-height: 1.2;
 }
 .qty {
   display: flex;
@@ -270,7 +280,7 @@
 
 @media (min-width: 1024px) {
   .product {
-    grid-template-columns: 7fr 5fr;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     column-gap: var(--space-12);
   }
   .breadcrumb {

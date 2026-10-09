@@ -22,6 +22,8 @@ a:hover > .background img {
 }
 
 .banner {
+  width: 100%;
+  max-width: 100%;
   aspect-ratio: 21 / 7;
   min-height: 180px;
   overflow: hidden;
