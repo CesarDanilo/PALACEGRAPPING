@@ -3,46 +3,46 @@ import type { ArtKind } from '@/components/media/Placeholder';
 /**
  * Mídia editorial da loja (hero, banners, inspiração, página "sobre").
  *
- * COMO TROCAR PELAS FOTOS OFICIAIS:
- *  1. Coloque o arquivo em `public/media/` (ex.: `public/media/hero.jpg`, 2400px de largura, JPG/WebP).
- *  2. Preencha `src` do slot correspondente (ex.: `src: '/media/hero.jpg'`) e revise o `alt`.
- *  3. Enquanto `src` for null, a loja mostra uma ilustração marcada como "Foto temporária".
+ * COMO TROCAR AS FOTOS:
+ *  1. Coloque o arquivo em `public/media/` (JPG/WebP, até ~2400px de largura).
+ *  2. Aponte `src` do slot para ele (ex.: `src: '/media/hero.png'`) e revise o `alt`.
+ *  3. Com `src: null`, a loja mostra uma ilustração marcada como "Foto temporária".
  *
- * Fotos de PRODUTO não ficam aqui: são enviadas pelo painel (Supabase Storage) e
- * chegam pela API com o texto alternativo cadastrado.
+ * As fotos atuais são de produtos Suerte (fornecidas pela loja ou do catálogo dela).
+ * Fotos de PRODUTO não ficam aqui: são enviadas pelo painel e chegam pela API.
  */
 export interface MediaSlot {
   src: string | null;
   alt: string;
-  /** Ilustração temporária usada enquanto não há foto. */
+  /** Ilustração usada se `src` ficar vazio. */
   art: ArtKind;
-  /** Briefing da foto que deve substituir a ilustração. */
+  /** Briefing da foto ideal para o slot. */
   brief: string;
 }
 
 export const media = {
   hero: {
-    src: null,
-    alt: 'Atleta de kimono preto ajustando a faixa antes do treino',
+    src: '/media/hero.png',
+    alt: 'Atleta tatuado vestindo kimono preto com bordados dourados, em fundo escuro',
     art: 'kimono',
     brief: 'Atleta de kimono preto, plano americano, luz lateral dura',
   },
-  heroDrop: { src: null, alt: 'Rash guard do novo lançamento', art: 'rashguard', brief: 'Rash guard do drop, fundo neutro' },
-  gi: { src: null, alt: 'Detalhe da gola de um kimono trançado', art: 'kimono', brief: 'Gi: gola e lapela em close' },
-  noGi: { src: null, alt: 'Atleta em posição de guarda usando rash guard e shorts', art: 'rashguard', brief: 'No-Gi: atleta em guarda, P&B' },
-  manifesto: { src: null, alt: 'Faixa preta amarrada, com graus na ponteira', art: 'belt', brief: 'Faixa preta com 4 graus em close' },
-  culture1: { src: null, alt: 'Atletas cumprimentando-se no tatame', art: 'kimono', brief: 'Cumprimento no tatame' },
-  culture2: { src: null, alt: 'Pegada na manga durante um rola', art: 'kimono', brief: 'Pegada na manga, close' },
+  heroDrop: { src: '/media/hero-drop.jpg', alt: 'Rash guard Suerte Apex em detalhe', art: 'rashguard', brief: 'Rash guard do drop, fundo neutro' },
+  gi: { src: '/media/gi.jpg', alt: 'Kimono preto Suerte com bordado nas costas', art: 'kimono', brief: 'Gi: kimono em destaque' },
+  noGi: { src: '/media/no-gi.jpg', alt: 'Atleta de costas usando rash guard Suerte com estampa de águia', art: 'rashguard', brief: 'No-Gi: atleta de rash guard' },
+  manifesto: { src: '/media/manifesto.jpg', alt: 'Detalhe de kimono preto com bordado e faixa roxa', art: 'belt', brief: 'Faixa e bordado em close' },
+  culture1: { src: '/media/culture-1.jpg', alt: 'Atleta vestindo kimono preto Suerte', art: 'kimono', brief: 'Atleta de kimono' },
+  culture2: { src: '/media/culture-2.jpg', alt: 'Detalhe do bordado na manga de um kimono preto', art: 'kimono', brief: 'Detalhe de bordado' },
   inspiration: [
-    { src: null, alt: 'Look de treino com rash guard e spats', art: 'spats', brief: 'Look No-Gi completo' },
-    { src: null, alt: 'Atleta chegando à academia com bolsa de treino', art: 'bag', brief: 'Chegada à academia' },
-    { src: null, alt: 'Shorts de luta em movimento', art: 'shorts', brief: 'Shorts em movimento' },
-    { src: null, alt: 'Kimono branco dobrado sobre o tatame', art: 'kimono', brief: 'Kimono dobrado no tatame' },
+    { src: '/media/inspiration-1.jpg', alt: 'Bermuda No-Gi Suerte com o S bordado', art: 'shorts', brief: 'Bermuda No-Gi' },
+    { src: '/media/inspiration-2.jpg', alt: 'Calça legging Suerte para treino No-Gi', art: 'spats', brief: 'Legging de treino' },
+    { src: '/media/inspiration-3.jpg', alt: 'Bordado em azul na gola de um kimono branco', art: 'kimono', brief: 'Detalhe de kimono' },
+    { src: '/media/inspiration-4.jpg', alt: 'Faixa branca de Jiu-Jitsu Suerte enrolada', art: 'belt', brief: 'Faixa de Jiu-Jitsu' },
   ],
-  about: { src: null, alt: 'Treino coletivo em uma academia de Jiu-Jitsu', art: 'kimono', brief: 'Treino coletivo, plano aberto' },
+  about: { src: '/media/about.png', alt: 'Costas de kimono preto com o bordado "Pressure Creates Champions"', art: 'kimono', brief: 'Kimono em destaque' },
 } satisfies Record<string, MediaSlot | MediaSlot[]>;
 
-/** Ilustração temporária por linha/categoria quando o produto ainda não tem foto. */
+/** Ilustração por linha/categoria quando o produto ainda não tem foto. */
 export function artForProduct(product: { line: string | null; category: { slug: string } | null }): ArtKind {
   const slug = product.category?.slug ?? '';
   if (slug.includes('kimono')) return 'kimono';

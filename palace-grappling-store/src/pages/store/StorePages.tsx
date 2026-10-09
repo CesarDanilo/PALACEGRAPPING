@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { BeltBar, CircleBadge } from '@/brand/Brand';
 import { ArrowUpRightIcon } from '@/components/icons';
 import { Media } from '@/components/media/Media';
+import { CoverBackground, CoverBanner } from '@/components/store/Cover';
 import { ListingHero, ProductListing, lineLabel, useFacets, useListingQuery } from '@/components/store/ProductListing';
 import { Countdown } from '@/components/store/Sections';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
@@ -55,7 +56,9 @@ export function CategoryPage() {
   }
   return (
     <>
-      <ListingHero title={category?.name ?? '…'} description={category?.description} />
+      <ListingHero title={category?.name ?? '…'} description={category?.description}>
+        <CoverBanner source={{ category: slug }} />
+      </ListingHero>
       <div className="container">
         <ProductListing query={query} fetcher={storefrontApi.products} queryKey={['products', 'category']} facets={facets.data} hide={['category']} />
       </div>
@@ -84,6 +87,7 @@ export function CatalogPage() {
     <>
       <ListingHero title={catalog?.name ?? '…'} description={catalog?.description}>
         {catalog?.endsAt ? <Countdown endsAt={catalog.endsAt} /> : null}
+        <CoverBanner source={{ catalog: slug, hero: catalog?.heroImageUrl }} />
       </ListingHero>
       <div className="container">
         <ProductListing
@@ -171,9 +175,10 @@ export function CollectionsPage() {
           <Alert tone="danger">{errorText(catalogs.error)}</Alert>
         ) : (
           <ul className={styles.mosaic}>
-            {catalogs.data.items.map((c, i) => (
-              <li key={c.slug} className={i % 3 === 1 ? styles.mosaicAccent : i % 3 === 2 ? styles.mosaicPaper : undefined}>
+            {catalogs.data.items.map((c) => (
+              <li key={c.slug} className={styles.mosaicImage}>
                 <Link to={`/catalogo/${c.slug}`}>
+                  <CoverBackground source={{ catalog: c.slug, hero: c.heroImageUrl }} />
                   <strong>{c.name}</strong>
                   <span className={styles.mosaicMeta}>
                     {c.type === 'CAMPAIGN' ? 'Campanha' : c.type === 'GENERAL' ? 'Catálogo geral' : 'Coleção'} · {c.productCount} produtos
@@ -183,8 +188,9 @@ export function CollectionsPage() {
               </li>
             ))}
             {categories.data?.items.map((c) => (
-              <li key={c.id}>
+              <li key={c.id} className={styles.mosaicImage}>
                 <Link to={`/categoria/${c.slug}`}>
+                  <CoverBackground source={{ category: c.slug }} />
                   <strong>{c.name}</strong>
                   {c.description ? <span className={styles.mosaicMeta}>{c.description}</span> : null}
                   <ArrowUpRightIcon size={22} />

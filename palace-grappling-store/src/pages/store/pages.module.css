@@ -102,6 +102,7 @@
   text-decoration: none;
 }
 .mosaic a > svg {
+  z-index: 1;
   position: absolute;
   top: var(--space-5);
   right: var(--space-5);
@@ -119,6 +120,20 @@
 .mosaic .mono {
   color: var(--accent);
   font-size: var(--text-sm);
+}
+.mosaicImage a {
+  overflow: hidden;
+  min-height: 18rem;
+  border-color: var(--border-subtle);
+  color: var(--color-white);
+}
+.mosaicImage a > strong,
+.mosaicImage a > .mosaicMeta {
+  position: relative;
+  z-index: 1;
+}
+.mosaicImage .mosaicMeta {
+  color: var(--color-graphite-300);
 }
 .mosaicMeta {
   color: var(--text-secondary);
