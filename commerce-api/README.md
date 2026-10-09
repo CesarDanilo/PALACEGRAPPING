@@ -158,9 +158,10 @@ Validadas na inicialização (`src/config/env.ts`); a API não sobe com configur
 1. Crie um bucket (padrão `product-images`) **público para leitura**: as URLs das fotos vão para a vitrine.
 2. Escrita e exclusão acontecem **somente** por esta API, com a chave `service_role` em `SUPABASE_SERVICE_ROLE_KEY`. Essa chave nunca vai para o frontend.
 3. Caminhos: `{tenantId}/products/{productId}/{uuid}.{ext}`. Metadados (ordem, principal, alt, variante, MIME, tamanho) ficam em `ProductImage`; nenhum binário vai para o Postgres.
-4. Validação: até `UPLOAD_MAX_BYTES` (5 MB padrão), tipos JPEG/PNG/WebP/AVIF conferidos pela **assinatura binária** do arquivo (não só pelo Content-Type). Se o metadado falhar após o upload, o arquivo é removido.
+4. Verificação: `npx tsx --env-file=.env scripts/check-storage.ts` cria o bucket público se não existir e faz um upload, uma leitura pública e uma remoção de teste.
+5. Validação: até `UPLOAD_MAX_BYTES` (5 MB padrão), tipos JPEG/PNG/WebP/AVIF conferidos pela **assinatura binária** do arquivo (não só pelo Content-Type). Se o metadado falhar após o upload, o arquivo é removido.
 
-> A integração com o Supabase Storage **não foi testada contra um projeto real** nesta fase (não havia credenciais). Os testes usam um Storage em memória.
+> Integração verificada contra um projeto Supabase real em 2026-10-09 (criação do bucket, upload, leitura pública e remoção). Os testes automatizados continuam usando um Storage em memória.
 
 ## Migrations e seed
 
