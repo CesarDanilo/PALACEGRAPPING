@@ -5,3 +5,6 @@ coverage/
 .env.*
 !.env.example
 *.log
+
+# Backend vive em repositório próprio (palace-commerce-api), clonado aqui localmente.
+commerce-api/

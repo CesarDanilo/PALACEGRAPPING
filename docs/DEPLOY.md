@@ -6,7 +6,7 @@ A Vercel encaminha `/api/*` para a API (`palace-grappling-store/vercel.json`). P
 
 ## 1. API no Render
 
-1. Em render.com, escolha **New → Blueprint** e selecione o repositório. O `render.yaml` cria o serviço `palace-commerce-api` (Docker, pasta `commerce-api`).
+1. Em render.com, escolha **New → Blueprint** e selecione o repositório do **backend** (commerce-api). O `render.yaml` dele cria o serviço `palace-commerce-api` (Docker).
 2. Preencha as variáveis marcadas como `sync: false`:
    - **`DATABASE_URL`:** no Supabase, vá em **Connect → Transaction pooler** (porta 6543) e acrescente `?uselibpqcompat=true&sslmode=require`. A senha precisa ser codificada para URL (`@` vira `%40`).
    - **`DIRECT_URL`:** no Supabase, **Connect → Session pooler** (porta 5432), com os mesmos parâmetros. O endereço direto `db.<ref>.supabase.co` é só IPv6 e o Render não alcança.
@@ -20,7 +20,7 @@ No plano gratuito, o Render hiberna o serviço depois de 15 minutos sem acesso. 
 
 ## 2. Loja na Vercel
 
-1. Em **Add New → Project**, importe o repositório e defina **Root Directory = `palace-grappling-store`**. Não use `commerce-api`: a API não roda como projeto estático na Vercel.
+1. Em **Add New → Project**, importe **este** repositório (PALACEGRAPPING) e defina **Root Directory = `palace-grappling-store`**.
 2. O framework (Vite), o comando de build e a pasta `dist` já vêm do `vercel.json`.
 3. Não defina `VITE_API_URL`. Vazio significa mesma origem, via o proxy `/api`.
 4. Se o serviço do Render tiver outro nome, ajuste o destino da primeira regra em `vercel.json`.
