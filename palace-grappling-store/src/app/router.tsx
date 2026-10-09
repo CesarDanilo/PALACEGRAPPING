@@ -85,6 +85,7 @@ export const routes: RouteObject[] = [
           { path: 'categorias', element: page('CategoriesPage') },
           { path: 'estoque', element: page('InventoryPage') },
           { path: 'pedidos', element: page('OrdersPage') },
+          { path: 'pedidos/novo', element: page('NewOrderPage') },
           { path: 'pedidos/:id', element: page('OrderDetailPage') },
           { path: 'clientes', element: page('CustomersPage') },
           { path: 'clientes/:id', element: page('CustomerDetailPage') },

@@ -52,7 +52,10 @@ test('entrada de estoque: busca o produto, informa quantidades e atualiza o sald
   await page.getByLabel('1. Qual produto chegou?').fill('Rash Guard');
   await page.getByRole('button', { name: /Rash Guard/ }).first().click();
   const first = page.getByRole('spinbutton', { name: /Unidades que chegaram/ }).first();
-  const before = Number(await page.locator('tbody tr').first().locator('td').nth(1).innerText().then((t) => t.match(/\d+/)?.[0] ?? '0'));
+  await first.waitFor();
+  // Saldo atual da primeira variante na tabela da entrada (não no histórico).
+  const entryRow = () => page.locator('#entrada tbody tr').first().locator('td').nth(1);
+  const before = Number(await entryRow().innerText().then((t) => t.match(/\d+/)?.[0] ?? '0'));
   await first.fill('0.5');
   await expect(page.getByText('Inteiro de 1 a 100.000')).toBeVisible();
   await first.fill('3');
@@ -61,16 +64,25 @@ test('entrada de estoque: busca o produto, informa quantidades e atualiza o sald
   await page.getByRole('button', { name: 'Nova entrada' }).click();
   await page.getByLabel('1. Qual produto chegou?').fill('Rash Guard');
   await page.getByRole('button', { name: /Rash Guard/ }).first().click();
-  await expect(page.locator('tbody tr').first().locator('td').nth(1)).toContainText(String(before + 3));
+  await page.getByRole('spinbutton', { name: /Unidades que chegaram/ }).first().waitFor();
+  await expect(entryRow()).toContainText(String(before + 3));
 });
 
 test('confirmação manual de pagamento leva o pedido para Pago', async ({ page }) => {
   await login(page);
-  await page.goto('/admin/pedidos?status=PENDING_PAYMENT');
-  await expect(page.locator('tbody tr').first().or(page.getByText(/Nenhum pedido/))).toBeVisible();
-  const row = page.locator('tbody tr').first();
-  test.skip(!(await row.count()), 'sem pedido aguardando pagamento no banco de teste');
-  await row.getByRole('link').first().click();
+  // Cria um pedido aguardando pagamento pelo próprio painel.
+  await page.goto('/admin/pedidos/novo');
+  await page.getByLabel('Buscar produto').fill('faixa');
+  await page.getByRole('button', { name: /^Adicionar Faixa/ }).filter({ hasNot: page.locator('[disabled]') }).first().click();
+  await page.getByLabel('Nome completo').fill('Cliente Pix Direto');
+  await page.getByLabel('Telefone (WhatsApp)').fill('(11) 95555-4444');
+  await page.getByLabel('CEP').fill('01310-100');
+  await page.getByLabel('Rua').fill('Av. Paulista');
+  await page.getByLabel('Número').fill('1000');
+  await page.getByLabel('Bairro').fill('Bela Vista');
+  await page.getByLabel('Cidade').fill('São Paulo');
+  await page.getByRole('button', { name: 'Criar pedido', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/pedidos\/[0-9a-f-]{36}$/);
   await expect(page.getByRole('heading', { name: 'Recebeu o pagamento por fora?' })).toBeVisible();
   const confirm = page.getByRole('button', { name: 'Confirmar pagamento' });
   await expect(confirm).toBeDisabled();
@@ -124,4 +136,69 @@ test('equipe: adiciona pessoa com login e senha, ela entra e é removida', async
 
   await page.getByRole('button', { name: 'Remover Operador Teste da equipe' }).click();
   await expect(page.getByRole('row').filter({ hasText: email })).toHaveCount(0);
+});
+
+test('catálogo: busca de produtos filtra enquanto digita e respeita o limite', async ({ page }) => {
+  await login(page);
+  await page.goto('/admin/catalogos');
+  await page.getByRole('button', { name: 'Novo catálogo' }).click();
+  const list = page.getByRole('list', { name: 'Produtos do catálogo' });
+  await expect(list.getByRole('listitem').first()).toBeVisible();
+  const total = await list.getByRole('listitem').count();
+  const search = page.getByLabel(/Produtos \(\d+ selecionados\)/);
+  await search.fill('spats');
+  await expect.poll(() => list.getByRole('listitem').count()).toBeLessThan(total);
+  await expect(list.getByRole('listitem').first()).toContainText(/Spats/i);
+  await list.getByRole('checkbox').first().check();
+  await expect(page.getByLabel('Produtos (1 selecionados)')).toBeVisible();
+  await search.fill('x'.repeat(120));
+  expect((await search.inputValue()).length).toBe(80);
+  await search.fill('');
+  await page.getByLabel('Só os selecionados').check();
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+});
+
+test('cliente manual: cadastra e recusa telefone repetido', async ({ page }) => {
+  await login(page);
+  await page.goto('/admin/clientes');
+  await page.getByRole('button', { name: 'Novo cliente' }).click();
+  const phone = `(11) 9${String(Date.now()).slice(-4)}-${String(Date.now()).slice(-8, -4)}`;
+  await page.getByLabel('Nome completo').fill('Cliente Manual E2E');
+  await page.getByLabel('Telefone (WhatsApp)').fill(phone);
+  await page.getByRole('button', { name: 'Cadastrar cliente' }).click();
+  await expect(page.getByText('Cliente cadastrado.')).toBeVisible();
+  await page.getByLabel('Nome completo').fill('Outra Pessoa');
+  await page.getByLabel('Telefone (WhatsApp)').fill(phone);
+  await page.getByRole('button', { name: 'Cadastrar cliente' }).click();
+  await expect(page.getByText(/Já existe um cliente com este telefone/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ver cliente' })).toBeVisible();
+  expect((await page.getByLabel('Nome completo').getAttribute('maxlength'))).toBe('120');
+});
+
+test('pedido manual: produto, cliente, entrega e pagamento recebido', async ({ page }) => {
+  await login(page);
+  await page.goto('/admin/pedidos');
+  await page.getByRole('link', { name: 'Novo pedido' }).click();
+  await expect(page.getByRole('button', { name: 'Criar pedido' })).toBeDisabled();
+  await page.getByLabel('Buscar produto').fill('rash ranked');
+  await page.getByRole('button', { name: /Adicionar Rash Guard Manga Longa Ranked/ }).filter({ hasNot: page.locator('[disabled]') }).first().click();
+  await expect(page.getByRole('list', { name: 'Itens do pedido' }).getByRole('listitem')).toHaveCount(1);
+  await page.getByRole('button', { name: /Aumentar Rash Guard/ }).click();
+  await page.getByLabel('Nome completo').fill('Comprador Balcão');
+  await page.getByLabel('Telefone (WhatsApp)').fill('(11) 96666-5555');
+  await page.getByLabel('CEP').fill('01310-100');
+  await page.getByLabel('Rua').fill('Av. Paulista');
+  await page.getByLabel('Número').fill('1000');
+  await page.getByLabel('Bairro').fill('Bela Vista');
+  await page.getByLabel('Cidade').fill('São Paulo');
+  await expect(page.getByText('Total', { exact: true }).first()).toBeVisible();
+  await page.getByLabel('Pagamento já recebido').check();
+  await page.getByRole('button', { name: 'Criar pedido pago' }).click();
+  await expect(page.getByText('Descreva como o pagamento foi recebido')).toBeVisible();
+  await page.getByLabel('Como foi pago (obrigatório)').fill('Dinheiro no balcão (E2E)');
+  await page.getByRole('button', { name: 'Criar pedido pago' }).click();
+  await expect(page).toHaveURL(/\/admin\/pedidos\/[0-9a-f-]{36}$/);
+  await expect(page.getByText('Pago', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Painel/).first()).toBeVisible();
+  await expect(page.getByText(/2/).first()).toBeVisible();
 });

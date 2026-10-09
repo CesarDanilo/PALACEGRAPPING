@@ -245,7 +245,7 @@ function EntryPanel({
               <label htmlFor="entry-search">1. Qual produto chegou?</label>
               <div className={styles.searchBox}>
                 <SearchIcon size={18} />
-                <input id="entry-search" type="search" placeholder="Nome ou SKU (mín. 2 letras)" value={search} onChange={(e) => onSearch(e.target.value)} autoComplete="off" />
+                <input id="entry-search" maxLength={80} type="search" placeholder="Nome ou SKU (mín. 2 letras)" value={search} onChange={(e) => onSearch(e.target.value)} autoComplete="off" />
               </div>
             </div>
             {term.length >= 2 ? (
@@ -407,7 +407,7 @@ function AdjustPanel({ variantId, onClose }: { variantId: string; onClose: () =>
         </div>
         <div className={`${styles.field} ${styles.span2}`}>
           <label htmlFor="mv-reason">Motivo</label>
-          <input id="mv-reason" aria-invalid={e.reason ? true : undefined} {...form.register('reason')} />
+          <input id="mv-reason" maxLength={200} aria-invalid={e.reason ? true : undefined} {...form.register('reason')} />
           {e.reason ? <p className={styles.fieldError}>{e.reason.message}</p> : null}
         </div>
         <div>

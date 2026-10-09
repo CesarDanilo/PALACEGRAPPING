@@ -103,10 +103,10 @@ export function CheckoutPage() {
             <legend>
               <span className="mono">01 /</span> Identificação
             </legend>
-            <TextField label="Nome completo" autoComplete="name" error={e.name?.message} {...register('name')} />
+            <TextField label="Nome completo" maxLength={120} autoComplete="name" error={e.name?.message} {...register('name')} />
             <div className={styles.row}>
-              <TextField label="Telefone (WhatsApp)" type="tel" inputMode="tel" autoComplete="tel" error={e.phone?.message} {...register('phone')} />
-              <TextField label="E-mail (opcional)" type="email" autoComplete="email" hint="Para receber a confirmação." error={e.email?.message} {...register('email')} />
+              <TextField label="Telefone (WhatsApp)" maxLength={25} type="tel" inputMode="tel" autoComplete="tel" error={e.phone?.message} {...register('phone')} />
+              <TextField label="E-mail (opcional)" maxLength={254} type="email" autoComplete="email" hint="Para receber a confirmação." error={e.email?.message} {...register('email')} />
             </div>
           </fieldset>
 
@@ -115,17 +115,17 @@ export function CheckoutPage() {
               <span className="mono">02 /</span> Entrega
             </legend>
             <div className={styles.row}>
-              <TextField label="CEP" inputMode="numeric" autoComplete="postal-code" error={e.zipCode?.message} {...register('zipCode')} />
+              <TextField label="CEP" maxLength={12} inputMode="numeric" autoComplete="postal-code" error={e.zipCode?.message} {...register('zipCode')} />
               <SelectField label="Estado" options={UFS.map((uf) => ({ value: uf, label: uf }))} autoComplete="address-level1" error={e.state?.message} {...register('state')} />
             </div>
-            <TextField label="Rua" autoComplete="address-line1" error={e.street?.message} {...register('street')} />
+            <TextField label="Rua" maxLength={160} autoComplete="address-line1" error={e.street?.message} {...register('street')} />
             <div className={styles.row}>
-              <TextField label="Número" error={e.number?.message} {...register('number')} />
-              <TextField label="Complemento" autoComplete="address-line2" error={e.complement?.message} {...register('complement')} />
+              <TextField label="Número" maxLength={20} error={e.number?.message} {...register('number')} />
+              <TextField label="Complemento" maxLength={80} autoComplete="address-line2" error={e.complement?.message} {...register('complement')} />
             </div>
             <div className={styles.row}>
-              <TextField label="Bairro" error={e.district?.message} {...register('district')} />
-              <TextField label="Cidade" autoComplete="address-level2" error={e.city?.message} {...register('city')} />
+              <TextField label="Bairro" maxLength={80} error={e.district?.message} {...register('district')} />
+              <TextField label="Cidade" maxLength={80} autoComplete="address-level2" error={e.city?.message} {...register('city')} />
             </div>
           </fieldset>
 
@@ -150,7 +150,7 @@ export function CheckoutPage() {
             <p className={styles.small}>
               {method === 'PIX' ? 'Você verá o QR Code Pix' : 'Você informará o cartão'} na página segura do provedor de pagamento. Esta loja não recebe dados de cartão.
             </p>
-            <TextField label="Observações (opcional)" error={e.notes?.message} {...register('notes')} />
+            <TextField label="Observações (opcional)" maxLength={500} error={e.notes?.message} {...register('notes')} />
             <label className={styles.terms}>
               <input type="checkbox" aria-invalid={e.acceptTerms ? true : undefined} aria-describedby={e.acceptTerms ? 'terms-error' : undefined} {...register('acceptTerms')} />
               <span>

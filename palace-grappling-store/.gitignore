@@ -25,3 +25,5 @@ playwright-report/
 .link-url-check.mjs
 .why-admin.mjs
 .shots-admin.mjs
+.live-links-reset.mjs
+.shot-neworder.mjs

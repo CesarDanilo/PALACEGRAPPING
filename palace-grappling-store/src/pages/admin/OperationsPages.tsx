@@ -14,6 +14,7 @@ import { centsSchema, emailSchema, passwordSchema, phoneSchema, toNumber } from 
 import { MoneyField, PageHeader, Pager, Panel, StatusPill, date, dateTime, errorMessage, money, orderStatusText, useAdminKey, useAdminMutation } from './common';
 import { Callout, Kpi } from './highlights';
 import { TeamPanel } from './TeamPanel';
+import { NewCustomerPanel } from './NewCustomerPanel';
 import { ChartIcon, OrdersIcon, WalletIcon } from '@/components/icons';
 import styles from './admin.module.css';
 
@@ -37,6 +38,7 @@ function usePageParam() {
 // ───────────────────────── Pedidos ─────────────────────────
 
 export function OrdersPage() {
+  const { can } = useAdminSession();
   const key = useAdminKey();
   const { params, set, page } = usePageParam();
   const status = (params.get('status') as OrderStatus | null) ?? undefined;
@@ -49,7 +51,9 @@ export function OrdersPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Pedidos" description="Pagamento é confirmado pelo provedor; preparação, envio e entrega são registrados aqui." />
+      <PageHeader title="Pedidos" description="Pagamento é confirmado pelo provedor; preparação, envio e entrega são registrados aqui."
+        actions={can('orders:write') ? <Link to="/admin/pedidos/novo" className={styles.linkButton}>Novo pedido</Link> : null}
+      />
       <div className={styles.toolbar}>
         <label className={styles.field}>
           <span>Status</span>
@@ -359,13 +363,20 @@ export function OrderDetailPage() {
 // ───────────────────────── Clientes ─────────────────────────
 
 export function CustomersPage() {
+  const { can } = useAdminSession();
+  const [adding, setAdding] = useState(false);
   const key = useAdminKey();
   const { params, set, page } = usePageParam();
   const search = params.get('q') ?? undefined;
   const customers = useQuery({ queryKey: key('customers', search, page), queryFn: () => adminApi.customers({ search, page, pageSize: 25 }), placeholderData: keepPreviousData });
   return (
     <div className={styles.page}>
-      <PageHeader title="Clientes" description="Criados automaticamente no checkout, identificados pelo telefone." />
+      <PageHeader
+        title="Clientes"
+        description="Criados no checkout ou cadastrados aqui. O telefone identifica o cliente."
+        actions={can('orders:write') && !adding ? <Button size="sm" onClick={() => setAdding(true)}>Novo cliente</Button> : null}
+      />
+      {adding ? <NewCustomerPanel onClose={() => setAdding(false)} /> : null}
       <form
         role="search"
         className={styles.toolbar}
@@ -376,7 +387,7 @@ export function CustomersPage() {
       >
         <label className={styles.field}>
           <span>Nome, e-mail ou telefone</span>
-          <input name="q" defaultValue={search} />
+          <input name="q" maxLength={100} defaultValue={search} />
         </label>
         <Button size="sm" variant="secondary" type="submit">
           Buscar
@@ -651,7 +662,7 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
           <form className={styles.formGrid} noValidate onSubmit={form.handleSubmit((v) => create.mutate(v))}>
             <div className={styles.field}>
               <label htmlFor="en-desc">Descrição</label>
-              <input id="en-desc" aria-invalid={fe.description ? true : undefined} {...form.register('description')} />
+              <input id="en-desc" maxLength={200} aria-invalid={fe.description ? true : undefined} {...form.register('description')} />
               {fe.description ? <p className={styles.fieldError}>{fe.description.message}</p> : null}
             </div>
             <Controller
@@ -689,7 +700,7 @@ export function EntriesPage({ kind }: { kind: 'INCOME' | 'EXPENSE' }) {
             ) : null}
             <div className={styles.field}>
               <label htmlFor="en-method">Forma de pagamento</label>
-              <input id="en-method" placeholder="Pix, boleto, cartão…" aria-invalid={fe.paymentMethod ? true : undefined} {...form.register('paymentMethod')} />
+              <input id="en-method" maxLength={40} placeholder="Pix, boleto, cartão…" aria-invalid={fe.paymentMethod ? true : undefined} {...form.register('paymentMethod')} />
               {fe.paymentMethod ? <p className={styles.fieldError}>{fe.paymentMethod.message}</p> : null}
             </div>
             <div>
@@ -954,17 +965,17 @@ function SettingsForm({ initial, readOnly }: { initial: Settings; readOnly: bool
           </div>
           <div className={styles.field}>
             <label htmlFor="st-email">E-mail de contato</label>
-            <input id="st-email" type="email" inputMode="email" autoComplete="email" aria-invalid={e.contactEmail ? true : undefined} {...form.register('contactEmail')} />
+            <input id="st-email" maxLength={254} type="email" inputMode="email" autoComplete="email" aria-invalid={e.contactEmail ? true : undefined} {...form.register('contactEmail')} />
             {e.contactEmail ? <p className={styles.fieldError}>{e.contactEmail.message}</p> : null}
           </div>
           <div className={styles.field}>
             <label htmlFor="st-phone">Telefone / WhatsApp</label>
-            <input id="st-phone" type="tel" inputMode="tel" autoComplete="tel" aria-invalid={e.contactPhone ? true : undefined} {...form.register('contactPhone')} />
+            <input id="st-phone" maxLength={25} type="tel" inputMode="tel" autoComplete="tel" aria-invalid={e.contactPhone ? true : undefined} {...form.register('contactPhone')} />
             {e.contactPhone ? <p className={styles.fieldError}>{e.contactPhone.message}</p> : null}
           </div>
           <div className={styles.field}>
             <label htmlFor="st-terms">URL dos termos oficiais (opcional)</label>
-            <input id="st-terms" type="url" inputMode="url" aria-invalid={e.termsUrl ? true : undefined} {...form.register('termsUrl')} />
+            <input id="st-terms" maxLength={2000} type="url" inputMode="url" aria-invalid={e.termsUrl ? true : undefined} {...form.register('termsUrl')} />
             {e.termsUrl ? <p className={styles.fieldError}>{e.termsUrl.message}</p> : null}
           </div>
           {!readOnly ? (
@@ -1014,17 +1025,17 @@ function PasswordPanel() {
       <form className={styles.formGrid} noValidate onSubmit={form.handleSubmit((v) => change.mutate(v))}>
         <div className={`${styles.field} ${styles.span2}`}>
           <label htmlFor="pw-current">Senha atual</label>
-          <input id="pw-current" type="password" autoComplete="current-password" aria-invalid={e.currentPassword ? true : undefined} {...form.register('currentPassword')} />
+          <input id="pw-current" maxLength={128} type="password" autoComplete="current-password" aria-invalid={e.currentPassword ? true : undefined} {...form.register('currentPassword')} />
           {e.currentPassword ? <p className={styles.fieldError}>{e.currentPassword.message}</p> : null}
         </div>
         <div className={styles.field}>
           <label htmlFor="pw-new">Nova senha</label>
-          <input id="pw-new" type="password" autoComplete="new-password" aria-describedby="pw-hint" aria-invalid={e.newPassword ? true : undefined} {...form.register('newPassword')} />
+          <input id="pw-new" maxLength={128} type="password" autoComplete="new-password" aria-describedby="pw-hint" aria-invalid={e.newPassword ? true : undefined} {...form.register('newPassword')} />
           {e.newPassword ? <p className={styles.fieldError}>{e.newPassword.message}</p> : <p id="pw-hint" className={styles.muted}>12 ou mais caracteres, com letras e números.</p>}
         </div>
         <div className={styles.field}>
           <label htmlFor="pw-confirm">Confirme a nova senha</label>
-          <input id="pw-confirm" type="password" autoComplete="new-password" aria-invalid={e.confirmPassword ? true : undefined} {...form.register('confirmPassword')} />
+          <input id="pw-confirm" maxLength={128} type="password" autoComplete="new-password" aria-invalid={e.confirmPassword ? true : undefined} {...form.register('confirmPassword')} />
           {e.confirmPassword ? <p className={styles.fieldError}>{e.confirmPassword.message}</p> : null}
         </div>
         <div className={styles.span2}>

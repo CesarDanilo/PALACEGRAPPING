@@ -181,6 +181,33 @@ export interface AdminPayment {
   createdAt: string;
 }
 
+export interface ShippingAddressInput {
+  zipCode: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  district: string;
+  city: string;
+  state: string;
+}
+
+export interface NewCustomerInput {
+  name: string;
+  phone: string;
+  email: string | null;
+  address: ShippingAddressInput | null;
+}
+
+export interface NewOrderInput {
+  customer: { name: string; phone: string; email: string | null };
+  address: ShippingAddressInput;
+  items: { variantId: string; quantity: number }[];
+  paymentMethod: 'PIX' | 'CARD';
+  notes: string | null;
+  paid: boolean;
+  paymentNote: string | null;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -297,6 +324,10 @@ export const adminApi = {
 
   customers: (q: Query) => get<Page<Customer>>('/customers', q),
   customer: (id: string) => get<{ customer: Customer; orders: AdminOrder[] }>(`/customers/${id}`),
+  createCustomer: (body: NewCustomerInput) => send<{ customer: Customer; orders: AdminOrder[] }>('POST', '/customers', body),
+  /** Pedido lançado pelo painel. A chave evita duplicar se o botão for clicado duas vezes. */
+  createOrder: (body: NewOrderInput, idempotencyKey: string) =>
+    api<{ order: AdminOrder; history: OrderHistory[]; payments: AdminPayment[] }>('/orders', { admin: true, method: 'POST', body, headers: { 'Idempotency-Key': idempotencyKey } }),
 
   financeSummary: (q: Query) => get<FinanceSummary>('/finance/summary', q),
   transactions: (q: Query) => get<Page<Transaction>>('/finance/transactions', q),

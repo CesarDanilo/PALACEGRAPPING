@@ -709,3 +709,144 @@
 .table .code {
   white-space: nowrap;
 }
+
+/* ── Busca de produtos (catálogos, novo pedido) ── */
+.pickerTools {
+  display: grid;
+  gap: var(--space-3);
+}
+.productPicker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-2);
+  max-height: 26rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.productPicker label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.25rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+}
+.productPicker label > span {
+  display: grid;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+.productPicker strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.productPicker input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--accent);
+}
+.pickerOn {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-sunken)) !important;
+}
+
+/* ── Novo pedido ── */
+.variantPick {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+.variantPick .linkButton {
+  gap: var(--space-2);
+}
+.orderLines {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.orderLines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.orderLineInfo {
+  display: grid;
+  flex: 1;
+  min-width: 10rem;
+  font-size: var(--text-sm);
+}
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+.qty button {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.qty input {
+  width: 3.25rem;
+  height: 2.5rem;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.iconOnly {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.iconOnly:hover {
+  background: var(--surface-control);
+  color: var(--color-danger);
+}
+.variantResults {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.entryHead > .thumb {
+  flex: none;
+  min-width: 0;
+}
+.searchBox input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}

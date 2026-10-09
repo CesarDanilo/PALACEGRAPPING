@@ -119,12 +119,12 @@ export function TeamPanel({ members }: { members: Member[] }) {
       <form className={styles.formGrid} noValidate onSubmit={form.handleSubmit((v) => add.mutate(v))}>
         <div className={styles.field}>
           <label htmlFor="tm-name">Nome completo</label>
-          <input id="tm-name" autoComplete="off" aria-invalid={e.name ? true : undefined} {...form.register('name')} />
+          <input id="tm-name" maxLength={120} autoComplete="off" aria-invalid={e.name ? true : undefined} {...form.register('name')} />
           {e.name ? <p className={styles.fieldError}>{e.name.message}</p> : null}
         </div>
         <div className={styles.field}>
           <label htmlFor="tm-email">E-mail (login)</label>
-          <input id="tm-email" type="email" inputMode="email" autoComplete="off" aria-invalid={e.email ? true : undefined} {...form.register('email')} />
+          <input id="tm-email" maxLength={254} type="email" inputMode="email" autoComplete="off" aria-invalid={e.email ? true : undefined} {...form.register('email')} />
           {e.email ? <p className={styles.fieldError}>{e.email.message}</p> : null}
         </div>
         <div className={`${styles.field} ${styles.span2}`}>
@@ -138,12 +138,12 @@ export function TeamPanel({ members }: { members: Member[] }) {
         </div>
         <div className={styles.field}>
           <label htmlFor="tm-pass">Senha inicial</label>
-          <input id="tm-pass" type="password" autoComplete="new-password" aria-invalid={e.password ? true : undefined} {...form.register('password')} />
+          <input id="tm-pass" maxLength={128} type="password" autoComplete="new-password" aria-invalid={e.password ? true : undefined} {...form.register('password')} />
           {e.password ? <p className={styles.fieldError}>{e.password.message}</p> : <p className={styles.muted}>12 ou mais caracteres, com letras e números. A pessoa pode trocar depois.</p>}
         </div>
         <div className={styles.field}>
           <label htmlFor="tm-pass2">Confirme a senha</label>
-          <input id="tm-pass2" type="password" autoComplete="new-password" aria-invalid={e.confirmPassword ? true : undefined} {...form.register('confirmPassword')} />
+          <input id="tm-pass2" maxLength={128} type="password" autoComplete="new-password" aria-invalid={e.confirmPassword ? true : undefined} {...form.register('confirmPassword')} />
           {e.confirmPassword ? <p className={styles.fieldError}>{e.confirmPassword.message}</p> : null}
         </div>
         <p className={`${styles.muted} ${styles.span2}`}>Se o e-mail já tiver conta no sistema, a pessoa entra com a senha que já usa (a senha informada aqui é ignorada).</p>

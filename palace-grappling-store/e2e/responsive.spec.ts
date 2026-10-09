@@ -40,7 +40,7 @@ async function expectLayoutOk(page: Page, label: string) {
 }
 
 const storeRoutes = ['/', '/loja', '/categoria/kimonos', `/produto/${PRODUCT}`, '/carrinho'];
-const adminRoutes = ['/admin', '/admin/produtos/novo', '/admin/estoque', '/admin/pedidos', '/admin/financeiro', '/admin/configuracoes'];
+const adminRoutes = ['/admin', '/admin/produtos/novo', '/admin/estoque', '/admin/pedidos', '/admin/pedidos/novo', '/admin/clientes', '/admin/catalogos', '/admin/financeiro', '/admin/configuracoes'];
 
 for (const width of [320, 390, 768, 1280]) {
   const mobile = width < 768;

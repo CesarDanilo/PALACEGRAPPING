@@ -8,6 +8,7 @@ import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useAdminSession } from '@/features/admin-auth/AdminSession';
 import { adminApi, type AdminCatalog, type AdminCategory } from '@/lib/api/admin';
 import { PageHeader, Panel, dateTime, errorMessage, useAdminKey, useAdminMutation } from './common';
+import { ProductPicker } from './product-search';
 import styles from './admin.module.css';
 
 const slugRule = z.union([z.literal(''), z.string().max(120, 'Máximo de 120 caracteres').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use minúsculas, números e hífens')]);
@@ -43,7 +44,7 @@ export function CategoriesPage() {
         <form className={styles.toolbar} noValidate onSubmit={form.handleSubmit((v) => create.mutate(v))}>
           <div className={styles.field}>
             <label htmlFor="cat-name">Nova categoria</label>
-            <input id="cat-name" placeholder="Ex.: Kimonos" aria-invalid={form.formState.errors.name ? true : undefined} {...form.register('name')} />
+            <input id="cat-name" maxLength={80} placeholder="Ex.: Kimonos" aria-invalid={form.formState.errors.name ? true : undefined} {...form.register('name')} />
             {form.formState.errors.name ? <p className={styles.fieldError}>{form.formState.errors.name.message}</p> : null}
           </div>
           <Button size="sm" type="submit" loading={create.isPending}>
@@ -191,8 +192,6 @@ const catalogSchema = z
 type CatalogForm = z.infer<typeof catalogSchema>;
 
 function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDone: () => void }) {
-  const key = useAdminKey();
-  const products = useQuery({ queryKey: key('products', 'all'), queryFn: () => adminApi.products({ pageSize: 100 }) });
   const form = useForm<CatalogForm>({
     resolver: zodResolver(catalogSchema),
     defaultValues: {
@@ -238,12 +237,12 @@ function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDo
         <div className={styles.formGrid}>
           <div className={styles.field}>
             <label htmlFor="cg-name">Nome</label>
-            <input id="cg-name" aria-invalid={e.name ? true : undefined} {...register('name')} />
+            <input id="cg-name" maxLength={120} aria-invalid={e.name ? true : undefined} {...register('name')} />
             {e.name ? <p className={styles.fieldError}>{e.name.message}</p> : null}
           </div>
           <div className={styles.field}>
             <label htmlFor="cg-slug">Slug</label>
-            <input id="cg-slug" placeholder={slugify(name)} aria-invalid={e.slug ? true : undefined} {...register('slug')} />
+            <input id="cg-slug" maxLength={120} placeholder={slugify(name)} aria-invalid={e.slug ? true : undefined} {...register('slug')} />
             {e.slug ? <p className={styles.fieldError}>{e.slug.message}</p> : null}
           </div>
           <div className={styles.field}>
@@ -256,7 +255,7 @@ function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDo
           </div>
           <div className={styles.field}>
             <label htmlFor="cg-hero">Imagem de capa (URL, opcional)</label>
-            <input id="cg-hero" type="url" inputMode="url" aria-invalid={e.heroImageUrl ? true : undefined} {...register('heroImageUrl')} />
+            <input id="cg-hero" type="url" inputMode="url" maxLength={2000} aria-invalid={e.heroImageUrl ? true : undefined} {...register('heroImageUrl')} />
             {e.heroImageUrl ? <p className={styles.fieldError}>{e.heroImageUrl.message}</p> : null}
           </div>
           <div className={styles.field}>
@@ -270,7 +269,7 @@ function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDo
           </div>
           <div className={`${styles.field} ${styles.span2}`}>
             <label htmlFor="cg-desc">Descrição</label>
-            <textarea id="cg-desc" aria-invalid={e.description ? true : undefined} {...register('description')} />
+            <textarea id="cg-desc" maxLength={5000} aria-invalid={e.description ? true : undefined} {...register('description')} />
             {e.description ? <p className={styles.fieldError}>{e.description.message}</p> : null}
           </div>
           <div className={styles.actions}>
@@ -283,16 +282,9 @@ function CatalogEditor({ catalog, onDone }: { catalog: AdminCatalog | null; onDo
           </div>
         </div>
         <fieldset className={styles.field} style={{ border: 0, padding: 0, minWidth: 0 }}>
-          <legend>Produtos ({selected.length})</legend>
+          <legend className="visually-hidden">Produtos do catálogo</legend>
           {e.productIds ? <p className={styles.fieldError}>{e.productIds.message}</p> : null}
-          <div className={styles.picker}>
-            {products.data?.items.map((p) => (
-              <label key={p.id} className={styles.check}>
-                <input type="checkbox" value={p.id} {...register('productIds')} />
-                {p.name} {!p.isActive ? '(inativo)' : ''}
-              </label>
-            ))}
-          </div>
+          <ProductPicker selected={selected} onChange={(ids) => form.setValue('productIds', ids, { shouldDirty: true, shouldValidate: true })} />
         </fieldset>
         <div className={styles.actions}>
           <Button size="sm" type="submit" loading={save.isPending}>
@@ -384,7 +376,7 @@ export function LinksPage() {
             </div>
             <div className={styles.field}>
               <label htmlFor="lk-label">Identificação</label>
-              <input id="lk-label" placeholder="Ex.: Equipe de competição" aria-invalid={le.label ? true : undefined} {...form.register('label')} />
+              <input id="lk-label" maxLength={120} placeholder="Ex.: Equipe de competição" aria-invalid={le.label ? true : undefined} {...form.register('label')} />
               {le.label ? <p className={styles.fieldError}>{le.label.message}</p> : null}
             </div>
             <div className={styles.field}>

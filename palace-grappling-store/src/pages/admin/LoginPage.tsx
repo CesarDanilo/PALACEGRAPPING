@@ -48,8 +48,8 @@ export function LoginPage() {
           Entrar no painel
         </h1>
         {error ? <Alert tone="danger">{error}</Alert> : null}
-        <TextField label="E-mail" type="email" autoComplete="username" error={formState.errors.email?.message} {...register('email')} />
-        <TextField label="Senha" type="password" autoComplete="current-password" error={formState.errors.password?.message} {...register('password')} />
+        <TextField label="E-mail" maxLength={254} type="email" autoComplete="username" error={formState.errors.email?.message} {...register('email')} />
+        <TextField label="Senha" maxLength={128} type="password" autoComplete="current-password" error={formState.errors.password?.message} {...register('password')} />
         <Button type="submit" block loading={formState.isSubmitting}>
           Entrar
         </Button>

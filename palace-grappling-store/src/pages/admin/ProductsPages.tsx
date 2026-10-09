@@ -45,7 +45,7 @@ export function ProductsPage() {
         <label className="visually-hidden" htmlFor="busca-produtos">
           Buscar por nome ou SKU
         </label>
-        <input id="busca-produtos" name="q" defaultValue={search} placeholder="Nome ou SKU" />
+        <input id="busca-produtos" maxLength={100} name="q" defaultValue={search} placeholder="Nome ou SKU" />
         <Button size="sm" variant="secondary" type="submit">
           Buscar
         </Button>
@@ -273,12 +273,12 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
             <div className={styles.formGrid}>
               <div className={styles.field}>
                 <label htmlFor="p-name">Nome</label>
-                <input id="p-name" aria-invalid={e.name ? true : undefined} {...register('name')} />
+                <input id="p-name" maxLength={160} aria-invalid={e.name ? true : undefined} {...register('name')} />
                 {e.name ? <p className={styles.fieldError}>{e.name.message}</p> : null}
               </div>
               <div className={styles.field}>
                 <label htmlFor="p-slug">Slug (URL)</label>
-                <input id="p-slug" placeholder="gerado a partir do nome" aria-invalid={e.slug ? true : undefined} {...register('slug')} />
+                <input id="p-slug" maxLength={120} placeholder="gerado a partir do nome" aria-invalid={e.slug ? true : undefined} {...register('slug')} />
                 {e.slug ? <p className={styles.fieldError}>{e.slug.message}</p> : null}
               </div>
               <div className={styles.field}>
@@ -294,7 +294,7 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
               </div>
               <div className={styles.field}>
                 <label htmlFor="p-line">Linha</label>
-                <input id="p-line" list="lines" placeholder="gi, no-gi…" {...register('line')} />
+                <input id="p-line" maxLength={40} list="lines" placeholder="gi, no-gi…" {...register('line')} />
                 <datalist id="lines">
                   <option value="gi" />
                   <option value="no-gi" />
@@ -313,19 +313,19 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
               />
               <div className={`${styles.field} ${styles.span2}`}>
                 <label htmlFor="p-desc">Descrição</label>
-                <textarea id="p-desc" {...register('description')} />
+                <textarea id="p-desc" maxLength={10000} {...register('description')} />
               </div>
               <div className={styles.field}>
                 <label htmlFor="p-tags">Tags (separadas por vírgula)</label>
-                <input id="p-tags" {...register('tags')} />
+                <input id="p-tags" maxLength={1200} {...register('tags')} />
               </div>
               <div className={styles.field}>
                 <label htmlFor="p-ship">Informação de entrega (opcional)</label>
-                <input id="p-ship" {...register('shippingInfo')} />
+                <input id="p-ship" maxLength={2000} {...register('shippingInfo')} />
               </div>
               <div className={`${styles.field} ${styles.span2}`}>
                 <label htmlFor="p-guide">Guia de tamanhos (texto, opcional)</label>
-                <textarea id="p-guide" placeholder={'A1 · altura 1,70–1,80 m · peso 70–80 kg'} {...register('sizeGuide')} />
+                <textarea id="p-guide" maxLength={10000} placeholder={'A1 · altura 1,70–1,80 m · peso 70–80 kg'} {...register('sizeGuide')} />
               </div>
               <div className={styles.actions}>
                 <label className={styles.check}>
@@ -350,19 +350,19 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
                       <span className={styles.variantIndex} aria-hidden="true">{i + 1}</span>
                       <div className={styles.field}>
                         <label htmlFor={id('sku')}>SKU</label>
-                        <input id={id('sku')} autoCapitalize="characters" aria-invalid={ve?.sku ? true : undefined} aria-describedby={ve?.sku ? id('sku-err') : undefined} {...register(`variants.${i}.sku`)} />
+                        <input id={id('sku')} maxLength={64} autoCapitalize="characters" aria-invalid={ve?.sku ? true : undefined} aria-describedby={ve?.sku ? id('sku-err') : undefined} {...register(`variants.${i}.sku`)} />
                         {ve?.sku ? <p id={id('sku-err')} className={styles.fieldError}>{ve.sku.message}</p> : null}
                       </div>
                       <div className={styles.field}>
                         <label htmlFor={id('size')}>Tamanho</label>
-                        <input id={id('size')} aria-invalid={ve?.size ? true : undefined} {...register(`variants.${i}.size`)} />
+                        <input id={id('size')} maxLength={20} aria-invalid={ve?.size ? true : undefined} {...register(`variants.${i}.size`)} />
                         {ve?.size ? <p className={styles.fieldError}>{ve.size.message}</p> : null}
                       </div>
                       <div className={styles.field}>
                         <label htmlFor={id('color')}>Cor</label>
                         <div className={styles.colorInput}>
                           <input type="color" aria-label={`Tom da cor da variante ${i + 1}`} {...register(`variants.${i}.colorHex`)} />
-                          <input id={id('color')} aria-invalid={ve?.color ? true : undefined} {...register(`variants.${i}.color`)} />
+                          <input id={id('color')} maxLength={40} aria-invalid={ve?.color ? true : undefined} {...register(`variants.${i}.color`)} />
                         </div>
                         {ve?.color ? <p className={styles.fieldError}>{ve.color.message}</p> : null}
                       </div>
@@ -474,19 +474,19 @@ function VariantsPanel({ product, readOnly }: { product: AdminProduct; readOnly:
         <form className={`${styles.variantRow} ${styles.variantAdd}`} noValidate onSubmit={form.handleSubmit((v) => add.mutate(v))}>
           <div className={styles.field}>
             <label htmlFor="nv-sku">SKU</label>
-            <input id="nv-sku" autoCapitalize="characters" aria-invalid={ve.sku ? true : undefined} {...form.register('sku')} />
+            <input id="nv-sku" maxLength={64} autoCapitalize="characters" aria-invalid={ve.sku ? true : undefined} {...form.register('sku')} />
             {ve.sku ? <p className={styles.fieldError}>{ve.sku.message}</p> : null}
           </div>
           <div className={styles.field}>
             <label htmlFor="nv-size">Tamanho</label>
-            <input id="nv-size" aria-invalid={ve.size ? true : undefined} {...form.register('size')} />
+            <input id="nv-size" maxLength={20} aria-invalid={ve.size ? true : undefined} {...form.register('size')} />
             {ve.size ? <p className={styles.fieldError}>{ve.size.message}</p> : null}
           </div>
           <div className={styles.field}>
             <label htmlFor="nv-color">Cor</label>
             <div className={styles.colorInput}>
               <input type="color" aria-label="Tom da cor" {...form.register('colorHex')} />
-              <input id="nv-color" aria-invalid={ve.color ? true : undefined} {...form.register('color')} />
+              <input id="nv-color" maxLength={40} aria-invalid={ve.color ? true : undefined} {...form.register('color')} />
             </div>
             {ve.color ? <p className={styles.fieldError}>{ve.color.message}</p> : null}
           </div>
