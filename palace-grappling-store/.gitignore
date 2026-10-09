@@ -27,3 +27,6 @@ playwright-report/
 .shots-admin.mjs
 .live-links-reset.mjs
 .shot-neworder.mjs
+.live-check-new.mjs
+.why-drag.mjs
+.shot-board.mjs

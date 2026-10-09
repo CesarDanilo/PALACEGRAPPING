@@ -238,3 +238,8 @@ export const AlertIcon = (p: IconProps) => (
     <path d="M12 10v4M12 17v.5" />
   </Icon>
 );
+export const BoardIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v7h-4z" />
+  </Icon>
+);

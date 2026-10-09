@@ -29,7 +29,7 @@ test('menu lateral recolhe para ícones e lembra a escolha', async ({ page }) =>
   await expect.poll(async () => (await aside.boundingBox())!.width).toBeLessThan(100);
   expect(wide).toBeGreaterThan(200);
   // Recolhido, o link continua acessível pelo nome.
-  await nav.getByRole('link', { name: 'Pedidos' }).click();
+  await nav.getByRole('link', { name: 'Pedidos', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Pedidos', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Expandir menu' })).toBeVisible();
@@ -73,7 +73,7 @@ test('confirmação manual de pagamento leva o pedido para Pago', async ({ page 
   // Cria um pedido aguardando pagamento pelo próprio painel.
   await page.goto('/admin/pedidos/novo');
   await page.getByLabel('Buscar produto').fill('faixa');
-  await page.getByRole('button', { name: /^Adicionar Faixa/ }).filter({ hasNot: page.locator('[disabled]') }).first().click();
+  await page.getByRole('button', { name: /^Adicionar Faixa/ }).and(page.locator(':enabled')).first().click();
   await page.getByLabel('Nome completo').fill('Cliente Pix Direto');
   await page.getByLabel('Telefone (WhatsApp)').fill('(11) 95555-4444');
   await page.getByLabel('CEP').fill('01310-100');
@@ -181,7 +181,7 @@ test('pedido manual: produto, cliente, entrega e pagamento recebido', async ({ p
   await page.getByRole('link', { name: 'Novo pedido' }).click();
   await expect(page.getByRole('button', { name: 'Criar pedido' })).toBeDisabled();
   await page.getByLabel('Buscar produto').fill('rash ranked');
-  await page.getByRole('button', { name: /Adicionar Rash Guard Manga Longa Ranked/ }).filter({ hasNot: page.locator('[disabled]') }).first().click();
+  await page.getByRole('button', { name: /Adicionar Rash Guard Manga Longa Ranked/ }).and(page.locator(':enabled')).first().click();
   await expect(page.getByRole('list', { name: 'Itens do pedido' }).getByRole('listitem')).toHaveCount(1);
   await page.getByRole('button', { name: /Aumentar Rash Guard/ }).click();
   await page.getByLabel('Nome completo').fill('Comprador Balcão');
@@ -201,4 +201,69 @@ test('pedido manual: produto, cliente, entrega e pagamento recebido', async ({ p
   await expect(page.getByText('Pago', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Painel/).first()).toBeVisible();
   await expect(page.getByText(/2/).first()).toBeVisible();
+});
+
+/** Cria um pedido aguardando pagamento pelo painel e devolve o número. */
+async function pendingOrder(page: Page, name: string) {
+  await page.goto('/admin/pedidos/novo');
+  await page.getByLabel('Buscar produto').fill('faixa');
+  await page.getByRole('button', { name: /^Adicionar Faixa/ }).and(page.locator(':enabled')).first().click();
+  await page.getByLabel('Nome completo').fill(name);
+  await page.getByLabel('Telefone (WhatsApp)').fill('(11) 94444-3333');
+  await page.getByLabel('CEP').fill('01310-100');
+  await page.getByLabel('Rua').fill('Av. Paulista');
+  await page.getByLabel('Número').fill('1000');
+  await page.getByLabel('Bairro').fill('Bela Vista');
+  await page.getByLabel('Cidade').fill('São Paulo');
+  await page.getByRole('button', { name: 'Criar pedido', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/pedidos\/[0-9a-f-]{36}$/);
+  const title = page.getByRole('heading', { level: 1, name: /^Pedido / });
+  await title.waitFor();
+  return (await title.innerText()).replace('Pedido ', '').trim();
+}
+
+test('quadro: move pelo menu, confirma pagamento e arrasta para a próxima etapa', async ({ page }) => {
+  await login(page);
+  const number = await pendingOrder(page, 'Cliente Quadro');
+  await page.goto('/admin/pedidos/quadro');
+  const col = (name: string) => page.getByRole('region', { name: new RegExp(`^${name}:`) });
+  const card = (name: string) => col(name).getByRole('listitem').filter({ hasText: number });
+  await expect(card('Aguardando pagamento')).toBeVisible();
+
+  await card('Aguardando pagamento').getByRole('combobox', { name: `Mover pedido ${number} para` }).selectOption('PAID');
+  const dialog = page.getByRole('dialog', { name: `Confirmar pagamento do pedido ${number}` });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Confirmar pagamento' })).toBeDisabled();
+  await dialog.getByLabel('Como foi pago (obrigatório)').fill('Pix direto (quadro E2E)');
+  await dialog.getByRole('button', { name: 'Confirmar pagamento' }).click();
+  await expect(card('Pago')).toBeVisible();
+
+  // Arrastar e soltar (HTML5) para "Em preparação", depois que o quadro termina de atualizar.
+  // Janela alta: o Playwright rola a página no meio do arraste se o destino não couber,
+  // e o arraste começaria em outro card. Um usuário real não rola no meio do gesto.
+  await page.setViewportSize({ width: 1440, height: 2000 });
+  await page.waitForLoadState('networkidle');
+  await card('Pago').dragTo(col('Em preparação').locator('header'));
+  await expect(card('Em preparação')).toBeVisible();
+  await expect(card('Pago')).toHaveCount(0);
+});
+
+test('apagar pedidos: em lote na lista e pela página do pedido', async ({ page }) => {
+  await login(page);
+  const a = await pendingOrder(page, 'Apagar Um');
+  const b = await pendingOrder(page, 'Apagar Dois');
+  const c = await pendingOrder(page, 'Apagar Tres');
+  // Pela página do pedido (estamos no pedido c).
+  await page.getByRole('button', { name: 'Apagar pedido' }).click();
+  await expect(page).toHaveURL(/\/admin\/pedidos$/);
+  await page.goto(`/admin/pedidos?q=${c}`);
+  await expect(page.getByText('Nenhum pedido')).toBeVisible();
+  // Em lote.
+  await page.goto('/admin/pedidos?status=PENDING_PAYMENT');
+  await page.getByRole('checkbox', { name: `Selecionar pedido ${a}` }).check();
+  await page.getByRole('checkbox', { name: `Selecionar pedido ${b}` }).check();
+  await expect(page.getByRole('region', { name: 'Ações em lote' })).toContainText('2 selecionado');
+  await page.getByRole('button', { name: 'Apagar selecionados' }).click();
+  await expect(page.getByText(/2 pedido\(s\) apagado\(s\), 2 peça\(s\) de volta ao estoque/)).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: `Selecionar pedido ${a}` })).toHaveCount(0);
 });

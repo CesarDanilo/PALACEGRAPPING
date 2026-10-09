@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { z } from '@/lib/zod';
 import { Button } from '@/components/ui/Button';
 import { Alert, EmptyState, LoadingState } from '@/components/ui/Feedback';
@@ -15,7 +15,7 @@ import { MoneyField, PageHeader, Pager, Panel, StatusPill, date, dateTime, error
 import { Callout, Kpi } from './highlights';
 import { TeamPanel } from './TeamPanel';
 import { NewCustomerPanel } from './NewCustomerPanel';
-import { ChartIcon, OrdersIcon, WalletIcon } from '@/components/icons';
+import { ChartIcon, OrdersIcon, TrashIcon, WalletIcon } from '@/components/icons';
 import styles from './admin.module.css';
 
 const intInput = { setValueAs: (v: string | number) => (typeof v === 'number' ? v : toNumber(v)) };
@@ -43,17 +43,61 @@ export function OrdersPage() {
   const { params, set, page } = usePageParam();
   const status = (params.get('status') as OrderStatus | null) ?? undefined;
   const search = params.get('q') ?? undefined;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const orders = useQuery({
     queryKey: key('orders', status, search, page),
     queryFn: () => adminApi.orders({ status, search, page, pageSize: 25 }),
     placeholderData: keepPreviousData,
   });
+  const canDelete = can('orders:write') && can('finance:write');
+  const remove = useAdminMutation((ids: string[]) => adminApi.deleteOrders(ids), () => setSelected(new Set()));
+  const items = orders.data?.items ?? [];
+  const allChecked = items.length > 0 && items.every((o) => selected.has(o.id));
+  const toggle = (id: string) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const confirmDelete = (ids: string[]) => {
+    const list = items.filter((o) => ids.includes(o.id));
+    const holding = list.filter((o) => ['PENDING_PAYMENT', 'PAID', 'PREPARING'].includes(o.status)).length;
+    const msg = [
+      `Apagar ${ids.length === 1 ? `o pedido ${list[0]?.number ?? ''}` : `${ids.length} pedidos`}? Não dá para desfazer.`,
+      holding ? `• ${holding} ainda reserva(m) estoque: as peças voltam ao estoque.` : '',
+      '• Receitas ligadas são canceladas no Financeiro.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    if (window.confirm(msg)) remove.mutate(ids);
+  };
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Pedidos" description="Pagamento é confirmado pelo provedor; preparação, envio e entrega são registrados aqui."
-        actions={can('orders:write') ? <Link to="/admin/pedidos/novo" className={styles.linkButton}>Novo pedido</Link> : null}
+      <PageHeader
+        title="Pedidos"
+        description="Lista completa. Para acompanhar por etapa, use o quadro."
+        actions={
+          <>
+            <Link to="/admin/pedidos/quadro" className={styles.linkButton}>
+              Ver quadro
+            </Link>
+            {can('orders:write') ? (
+              <Link to="/admin/pedidos/novo" className={styles.linkButton}>
+                Novo pedido
+              </Link>
+            ) : null}
+          </>
+        }
       />
+      {remove.isSuccess ? (
+        <Alert tone="success">
+          {remove.data.deleted} pedido(s) apagado(s){remove.data.restockedUnits ? `, ${remove.data.restockedUnits} peça(s) de volta ao estoque` : ''}
+          {remove.data.cancelledIncomes ? `, ${remove.data.cancelledIncomes} receita(s) cancelada(s)` : ''}.
+        </Alert>
+      ) : null}
+      {remove.isError ? <Alert tone="danger">{errorMessage(remove.error)}</Alert> : null}
       <div className={styles.toolbar}>
         <label className={styles.field}>
           <span>Status</span>
@@ -76,52 +120,95 @@ export function OrdersPage() {
         >
           <label className={styles.field}>
             <span>Número, nome ou e-mail</span>
-            <input name="q" defaultValue={search} />
+            <input name="q" maxLength={100} defaultValue={search} />
           </label>
           <Button size="sm" variant="secondary" type="submit">
             Buscar
           </Button>
         </form>
       </div>
+      {canDelete && selected.size ? (
+        <div className={styles.bulkBar} role="region" aria-label="Ações em lote">
+          <span>
+            <strong>{selected.size}</strong> selecionado(s)
+          </span>
+          <button type="button" className={styles.linkButton} onClick={() => setSelected(new Set())}>
+            Limpar seleção
+          </button>
+          <Button size="sm" variant="danger" loading={remove.isPending} onClick={() => confirmDelete([...selected])}>
+            Apagar selecionados
+          </Button>
+        </div>
+      ) : null}
       <Panel>
         {orders.isPending ? (
           <LoadingState />
         ) : orders.isError ? (
           <Alert tone="danger">{errorMessage(orders.error)}</Alert>
-        ) : !orders.data.items.length ? (
+        ) : !items.length ? (
           <EmptyState title="Nenhum pedido" />
         ) : (
           <>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Pedido</th>
-                  <th scope="col">Data</th>
-                  <th scope="col">Cliente</th>
-                  <th scope="col">Origem</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className={styles.num}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.data.items.map((o) => (
-                  <tr key={o.id}>
-                    <td>
-                      <Link to={`/admin/pedidos/${o.id}`} className={`${styles.rowLink} ${styles.code}`}>
-                        {o.number}
-                      </Link>
-                    </td>
-                    <td>{dateTime(o.createdAt)}</td>
-                    <td>{o.customerName}</td>
-                    <td>{sourceLabel[o.source]}</td>
-                    <td>
-                      <StatusPill status={o.status} />
-                    </td>
-                    <td className={styles.num}>{money(o.total)}</td>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    {canDelete ? (
+                      <th scope="col">
+                        <input
+                          type="checkbox"
+                          className={styles.rowCheck}
+                          aria-label="Selecionar todos os pedidos da página"
+                          checked={allChecked}
+                          onChange={() => setSelected(allChecked ? new Set() : new Set(items.map((o) => o.id)))}
+                        />
+                      </th>
+                    ) : null}
+                    <th scope="col">Pedido</th>
+                    <th scope="col">Data</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Origem</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className={styles.num}>Total</th>
+                    {canDelete ? (
+                      <th scope="col">
+                        <span className="visually-hidden">Ações</span>
+                      </th>
+                    ) : null}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((o) => (
+                    <tr key={o.id} className={selected.has(o.id) ? styles.rowSelected : undefined}>
+                      {canDelete ? (
+                        <td>
+                          <input type="checkbox" className={styles.rowCheck} aria-label={`Selecionar pedido ${o.number}`} checked={selected.has(o.id)} onChange={() => toggle(o.id)} />
+                        </td>
+                      ) : null}
+                      <td>
+                        <Link to={`/admin/pedidos/${o.id}`} className={`${styles.rowLink} ${styles.code}`}>
+                          {o.number}
+                        </Link>
+                      </td>
+                      <td>{dateTime(o.createdAt)}</td>
+                      <td>{o.customerName}</td>
+                      <td>{sourceLabel[o.source]}</td>
+                      <td>
+                        <StatusPill status={o.status} />
+                      </td>
+                      <td className={styles.num}>{money(o.total)}</td>
+                      {canDelete ? (
+                        <td>
+                          <button type="button" className={styles.iconOnly} aria-label={`Apagar pedido ${o.number}`} title="Apagar pedido" onClick={() => confirmDelete([o.id])}>
+                            <TrashIcon size={18} />
+                          </button>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Pager page={orders.data.page} totalPages={orders.data.totalPages} onChange={(p) => set('pagina', String(p))} />
           </>
         )}
@@ -158,6 +245,8 @@ export function OrderDetailPage() {
   const [restock, setRestock] = useState(true);
   const [paymentNote, setPaymentNote] = useState('');
   const confirmPayment = useAdminMutation(() => adminApi.confirmPayment(id, paymentNote.trim()), () => setPaymentNote(''));
+  const navigate = useNavigate();
+  const removeOrder = useAdminMutation(() => adminApi.deleteOrders([id]), () => navigate('/admin/pedidos'));
   const change = useAdminMutation((status: OrderStatus) =>
     adminApi.changeStatus(id, {
       status,
@@ -174,12 +263,33 @@ export function OrderDetailPage() {
   if (data.isError) return <Alert tone="danger">{errorMessage(data.error)}</Alert>;
   const { order, history, payments } = data.data;
   const actions = nextActions[order.status] ?? [];
-  const err = change.error ?? shipping.error ?? confirmPayment.error;
+  const err = change.error ?? shipping.error ?? confirmPayment.error ?? removeOrder.error;
 
   return (
     <div className={styles.page}>
-      <PageHeader title={`Pedido ${order.number}`} description={`${dateTime(order.createdAt)} · ${sourceLabel[order.source]}`} actions={<StatusPill status={order.status} />} />
-      {err ? <Alert tone="danger">{errorMessage(err)}</Alert> : null}
+      <PageHeader
+        title={`Pedido ${order.number}`}
+        description={`${dateTime(order.createdAt)} · ${sourceLabel[order.source]}`}
+        actions={
+          <>
+            <StatusPill status={order.status} />
+            {can('orders:write') && can('finance:write') ? (
+              <Button
+                size="sm"
+                variant="danger"
+                loading={removeOrder.isPending}
+                onClick={() => {
+                  const holds = ['PENDING_PAYMENT', 'PAID', 'PREPARING'].includes(order.status);
+                  if (window.confirm(`Apagar o pedido ${order.number}? Não dá para desfazer.${holds ? '\n• As peças voltam ao estoque.' : ''}\n• Receitas ligadas são canceladas no Financeiro.`)) removeOrder.mutate(undefined);
+                }}
+              >
+                Apagar pedido
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+      {err ?<Alert tone="danger">{errorMessage(err)}</Alert> : null}
       <div className={styles.split}>
         <div className={styles.page}>
           <Panel title="Itens">

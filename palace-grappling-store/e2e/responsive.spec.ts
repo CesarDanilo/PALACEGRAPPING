@@ -40,7 +40,7 @@ async function expectLayoutOk(page: Page, label: string) {
 }
 
 const storeRoutes = ['/', '/loja', '/categoria/kimonos', `/produto/${PRODUCT}`, '/carrinho'];
-const adminRoutes = ['/admin', '/admin/produtos/novo', '/admin/estoque', '/admin/pedidos', '/admin/pedidos/novo', '/admin/clientes', '/admin/catalogos', '/admin/financeiro', '/admin/configuracoes'];
+const adminRoutes = ['/admin', '/admin/produtos/novo', '/admin/estoque', '/admin/pedidos', '/admin/pedidos/quadro', '/admin/pedidos/novo', '/admin/clientes', '/admin/catalogos', '/admin/financeiro', '/admin/configuracoes'];
 
 for (const width of [320, 390, 768, 1280]) {
   const mobile = width < 768;
@@ -67,10 +67,10 @@ for (const width of [320, 390, 768, 1280]) {
       const menuButton = page.getByRole('button', { name: 'Abrir menu do painel' });
       if (width < 1024) {
         // Gaveta: abre, navega, fecha ao trocar de página; Esc devolve o foco ao botão.
-        await expect(page.getByRole('link', { name: 'Pedidos' })).toBeHidden();
+        await expect(page.getByRole('link', { name: 'Pedidos', exact: true })).toBeHidden();
         await menuButton.click();
         await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-        await page.getByRole('link', { name: 'Pedidos' }).click();
+        await page.getByRole('link', { name: 'Pedidos', exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Pedidos', exact: true })).toBeVisible();
         await expect(page.getByRole('link', { name: 'Estoque' })).toBeHidden();
         await menuButton.click();
@@ -79,7 +79,7 @@ for (const width of [320, 390, 768, 1280]) {
         await expect(menuButton).toBeFocused();
       } else {
         await expect(menuButton).toBeHidden();
-        await expect(page.getByRole('link', { name: 'Pedidos' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Pedidos', exact: true })).toBeVisible();
       }
     });
   });

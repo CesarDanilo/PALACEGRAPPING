@@ -320,6 +320,8 @@ export const adminApi = {
     send<{ order: AdminOrder }>('PATCH', `/orders/${id}/status`, body),
   updateShipping: (id: string, body: { shippingCarrier: string | null; trackingCode: string | null }) => send<{ order: AdminOrder }>('PATCH', `/orders/${id}/shipping`, body),
   /** Pagamento recebido fora do provedor (Pix direto, dinheiro). Exige observação. */
+  /** Apaga pedidos (um ou vários): devolve estoque reservado e cancela receitas ligadas. */
+  deleteOrders: (ids: string[]) => send<{ deleted: number; restockedUnits: number; cancelledIncomes: number }>('POST', '/orders/delete', { ids }),
   confirmPayment: (id: string, note: string) => send<{ order: AdminOrder }>('POST', `/orders/${id}/manual-payment`, { note }),
 
   customers: (q: Query) => get<Page<Customer>>('/customers', q),

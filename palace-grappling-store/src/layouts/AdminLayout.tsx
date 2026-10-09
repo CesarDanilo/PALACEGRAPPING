@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import {
+  BoardIcon,
   BookIcon,
   BoxIcon,
   ChartIcon,
@@ -31,6 +32,7 @@ const groups: { title: string; items: Section[] }[] = [
     items: [
       { to: '/admin', label: 'Painel', icon: DashboardIcon, end: true },
       { to: '/admin/pedidos', label: 'Pedidos', icon: OrdersIcon, permission: 'orders:read' },
+      { to: '/admin/pedidos/quadro', label: 'Quadro de pedidos', icon: BoardIcon, permission: 'orders:read' },
       { to: '/admin/estoque', label: 'Estoque', icon: BoxIcon, permission: 'catalog:read' },
       { to: '/admin/clientes', label: 'Clientes', icon: UsersIcon, permission: 'customers:read' },
     ],
@@ -184,7 +186,10 @@ export function AdminLayout() {
                         end={end}
                         title={collapsed ? label : undefined}
                         aria-label={collapsed ? label : undefined}
-                        className={({ isActive }) => (isActive ? styles.active : undefined)}
+                        className={({ isActive }) =>
+                          // "Pedidos" não fica ativo no quadro, que tem item próprio.
+                          isActive && !(to === '/admin/pedidos' && location.pathname.startsWith('/admin/pedidos/quadro')) ? styles.active : undefined
+                        }
                       >
                         <Icon size={20} />
                         <span className={styles.navLabel}>{label}</span>
