@@ -29,5 +29,8 @@ Tudo em containers (API + loja + banco): `docker compose --profile full up -d --
 
 ## Documentação
 
-- [docs/FASE-1.md](docs/FASE-1.md): direção proposta, arquitetura, multi-tenancy, o que foi entregue, comandos executados, resultados e próxima fase.
+- [docs/RELATORIO-FINAL.md](docs/RELATORIO-FINAL.md): o que foi entregue nas fases 2 a 5, testes executados e pendências.
+- [docs/DIRECAO-VISUAL.md](docs/DIRECAO-VISUAL.md): análise das referências e identidade da marca.
+- [docs/FASE-1.md](docs/FASE-1.md): fundação, arquitetura e multi-tenancy.
+- [palace-grappling-store/DESIGN.md](palace-grappling-store/DESIGN.md): sistema visual.
 - READMEs de cada projeto: instalação, variáveis, rotas/endpoints, segurança, testes, Docker, deploy, limitações.

@@ -59,10 +59,6 @@ export function Placeholder({ art, label, brief, tone = 'dark' }: { art: ArtKind
     <div className={`${styles.placeholder} ${tone === 'paper' ? styles.paper : ''}`} role="img" aria-label={`${label} (ilustração temporária)`}>
       <svg viewBox="0 0 200 240" preserveAspectRatio="xMidYMid slice" className={styles.art} aria-hidden="true">
         <defs>
-          <filter id={`grain-${id}`}>
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-            <feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.09 0" />
-          </filter>
           <linearGradient id={`light-${id}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="currentColor" stopOpacity="0.16" />
             <stop offset="1" stopColor="currentColor" stopOpacity="0" />
@@ -76,7 +72,6 @@ export function Placeholder({ art, label, brief, tone = 'dark' }: { art: ArtKind
           <path d="M0 200h200M0 175h200M0 160h200" />
         </g>
         <g className={styles.shape}>{shapes[art]}</g>
-        <rect width="200" height="240" filter={`url(#grain-${id})`} />
       </svg>
       <span className={styles.tag}>
         Foto temporária{brief ? <span className={styles.brief}> · {brief}</span> : null}

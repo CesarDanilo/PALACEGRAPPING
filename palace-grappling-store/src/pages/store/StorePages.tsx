@@ -15,7 +15,6 @@ import styles from './pages.module.css';
 export { HomePage } from './HomePage';
 export { ProductPage } from './ProductPage';
 export { CartPage } from './CartPage';
-export { CheckoutPage } from './CheckoutPage';
 export { CheckoutResultPage, MyOrdersPage, OrderTrackingPage } from './OrderPages';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Não foi possível carregar agora.');
@@ -31,7 +30,7 @@ export function ShopPage() {
   const title = q ? `Busca: ${q}` : line ? lineLabel(line) : query.sort === 'newest' ? 'Lançamentos' : 'Loja';
   return (
     <>
-      <ListingHero eyebrow={q ? 'Resultados' : 'Palace Grappling'} title={title} />
+      <ListingHero title={title} />
       <div className="container">
         <ProductListing query={query} fetcher={storefrontApi.products} queryKey={['products', 'shop']} facets={facets.data} categories={categories.data?.items} />
       </div>
@@ -56,7 +55,7 @@ export function CategoryPage() {
   }
   return (
     <>
-      <ListingHero eyebrow="Categoria" title={category?.name ?? '…'} description={category?.description} />
+      <ListingHero title={category?.name ?? '…'} description={category?.description} />
       <div className="container">
         <ProductListing query={query} fetcher={storefrontApi.products} queryKey={['products', 'category']} facets={facets.data} hide={['category']} />
       </div>
@@ -83,7 +82,7 @@ export function CatalogPage() {
   const catalog = head.data?.catalog;
   return (
     <>
-      <ListingHero eyebrow={catalog?.type === 'CAMPAIGN' ? 'Campanha' : 'Coleção'} title={catalog?.name ?? '…'} description={catalog?.description}>
+      <ListingHero title={catalog?.name ?? '…'} description={catalog?.description}>
         {catalog?.endsAt ? <Countdown endsAt={catalog.endsAt} /> : null}
       </ListingHero>
       <div className="container">
@@ -137,7 +136,7 @@ export function ExclusiveLinkPage() {
             {catalog.description ? <p className={styles.lead}>{catalog.description}</p> : null}
             {link.expiresAt ? (
               <div className={styles.expires}>
-                <span className="mono">Disponível até {new Date(link.expiresAt).toLocaleString('pt-BR')}</span>
+                <span className="label">Disponível até {new Date(link.expiresAt).toLocaleString('pt-BR')}</span>
                 <Countdown endsAt={link.expiresAt} />
               </div>
             ) : null}
@@ -164,7 +163,7 @@ export function CollectionsPage() {
   const categories = useQuery({ queryKey: storefrontKeys.categories, queryFn: storefrontApi.categories });
   return (
     <>
-      <ListingHero eyebrow="Linhas e campanhas" title="Coleções" />
+      <ListingHero title="Coleções" />
       <div className={`container ${styles.pad}`}>
         {catalogs.isPending ? (
           <LoadingState />
@@ -175,7 +174,6 @@ export function CollectionsPage() {
             {catalogs.data.items.map((c, i) => (
               <li key={c.slug} className={i % 3 === 1 ? styles.mosaicAccent : i % 3 === 2 ? styles.mosaicPaper : undefined}>
                 <Link to={`/catalogo/${c.slug}`}>
-                  <span className="mono">{String(i + 1).padStart(2, '0')} /</span>
                   <strong>{c.name}</strong>
                   <span className={styles.mosaicMeta}>
                     {c.type === 'CAMPAIGN' ? 'Campanha' : c.type === 'GENERAL' ? 'Catálogo geral' : 'Coleção'} · {c.productCount} produtos
@@ -184,10 +182,9 @@ export function CollectionsPage() {
                 </Link>
               </li>
             ))}
-            {categories.data?.items.map((c, i) => (
+            {categories.data?.items.map((c) => (
               <li key={c.id}>
                 <Link to={`/categoria/${c.slug}`}>
-                  <span className="mono">{String(catalogs.data.items.length + i + 1).padStart(2, '0')} /</span>
                   <strong>{c.name}</strong>
                   {c.description ? <span className={styles.mosaicMeta}>{c.description}</span> : null}
                   <ArrowUpRightIcon size={22} />
@@ -207,7 +204,6 @@ export function AboutPage() {
       <section className={styles.about}>
         <div className={`container ${styles.aboutInner}`}>
           <div>
-            <p className="eyebrow">A marca</p>
             <h1 className={styles.aboutTitle}>
               Nascida <br />
               no tatame<span className={styles.dot}>.</span>
@@ -237,7 +233,7 @@ export function ContactPage() {
   const store = useQuery({ queryKey: storefrontKeys.store, queryFn: storefrontApi.store });
   return (
     <>
-      <ListingHero eyebrow="Atendimento" title="Contato" description="Dúvidas sobre tamanho, pedido ou troca? Fale direto com a equipe." />
+      <ListingHero title="Contato" description="Dúvidas sobre tamanho, pedido ou troca? Fale direto com a equipe." />
       <div className={`container ${styles.pad}`}>
         {store.isPending ? (
           <LoadingState />
@@ -245,13 +241,13 @@ export function ContactPage() {
           <ul className={styles.contact}>
             {store.data.contactEmail ? (
               <li>
-                <span className="mono">E-mail</span>
+                <span className="label">E-mail</span>
                 <a href={`mailto:${store.data.contactEmail}`}>{store.data.contactEmail}</a>
               </li>
             ) : null}
             {store.data.contactPhone ? (
               <li>
-                <span className="mono">WhatsApp</span>
+                <span className="label">WhatsApp</span>
                 <a href={`https://wa.me/55${store.data.contactPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
                   {store.data.contactPhone}
                 </a>
@@ -271,7 +267,7 @@ export function PoliciesPage() {
   const store = useQuery({ queryKey: storefrontKeys.store, queryFn: storefrontApi.store });
   return (
     <>
-      <ListingHero eyebrow="Políticas" title="Termos, trocas e privacidade" />
+      <ListingHero title="Termos, trocas e privacidade" />
       <div className={`container ${styles.policies}`}>
         <Alert tone="warning" title="Texto-modelo">
           Conteúdo provisório. A loja deve revisar estas políticas antes de vender.
@@ -304,7 +300,6 @@ export function NotFoundPage() {
   return (
     <section className={styles.linkGate}>
       <div className={`container ${styles.linkGateInner}`}>
-        <p className="eyebrow">Erro 404</p>
         <h1 className={styles.linkTitle}>
           Fora do tatame<span className={styles.dot}>.</span>
         </h1>

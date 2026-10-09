@@ -55,8 +55,9 @@ describe('painel administrativo', () => {
   it('redireciona para o login sem sessão', async () => {
     mockApi((url) => (url.endsWith('/auth/refresh') ? { status: 401, body: { error: { code: 'UNAUTHENTICATED', message: 'x' } } } : { status: 404 }));
     const router = renderAt('/admin/pedidos');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/login'));
-    expect(screen.getByRole('heading', { name: 'Entrar no painel' })).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/login'), { timeout: 5000 });
+    expect(await screen.findByRole('heading', { name: 'Entrar no painel' }, { timeout: 5000 })).toBeInTheDocument();
+
   });
 
   it('valida o formulário, faz login e mostra o painel com X-Tenant-Id', async () => {
@@ -69,14 +70,14 @@ describe('painel administrativo', () => {
     const user = userEvent.setup();
     renderAt('/admin/login');
 
-    await user.click(await screen.findByRole('button', { name: 'Entrar' }));
+    await user.click(await screen.findByRole('button', { name: 'Entrar' }, { timeout: 5000 }));
     expect(await screen.findByText('Informe um e-mail válido')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('E-mail'), 'dono@loja.test');
     await user.type(screen.getByLabelText('Senha'), 'senha-secreta');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByRole('heading', { name: 'Painel' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Painel' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText('Resultado de caixa')).toBeInTheDocument();
     const dashboardCall = fetchMock.mock.calls.find(([u]) => String(u).includes('/dashboard'));
     const headers = dashboardCall![1]!.headers as Record<string, string>;
@@ -91,7 +92,7 @@ describe('painel administrativo', () => {
     });
     const user = userEvent.setup();
     renderAt('/admin/login');
-    await user.type(await screen.findByLabelText('E-mail'), 'dono@loja.test');
+    await user.type(await screen.findByLabelText('E-mail', {}, { timeout: 5000 }), 'dono@loja.test');
     await user.type(screen.getByLabelText('Senha'), 'errada');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha inválidos');

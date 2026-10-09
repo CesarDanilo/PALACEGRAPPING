@@ -41,7 +41,6 @@ export function HomePage() {
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroCopy}>
-            <p className={styles.heroEyebrow}>Gi · No-Gi · Coleção 2026</p>
             <h1 id="hero-title" className={styles.heroTitle}>
               Disciplina <br />
               vestida<span className={styles.dot}>.</span>
@@ -66,7 +65,7 @@ export function HomePage() {
               <Link to={`/produto/${drop.slug}`} className={styles.dropCard}>
                 <ProductImage product={drop} className={styles.dropThumb} />
                 <span className={styles.dropText}>
-                  <span className="mono">Novo drop</span>
+                  <span className="label">Novo drop</span>
                   <strong>{drop.name}</strong>
                   <Price min={drop.priceRange.min} />
                 </span>
@@ -84,7 +83,7 @@ export function HomePage() {
 
       {/* 3. Lançamentos */}
       <section id="lancamentos" className={`container ${styles.section}`} aria-labelledby="novos">
-        <SectionHeader id="novos" title="Lançamentos" eyebrow="Recém-chegados" to="/loja?ordem=newest" />
+        <SectionHeader id="novos" title="Lançamentos" to="/loja?ordem=newest" />
         {newest.isPending ? <ProductGridSkeleton /> : newest.isError ? <Alert tone="danger">Não foi possível carregar os lançamentos.</Alert> : <ProductGrid products={newest.data.items} />}
       </section>
 
@@ -93,11 +92,10 @@ export function HomePage() {
         {[
           { to: '/loja?linha=gi', title: 'Gi', slot: media.gi, text: 'Kimonos trançados, faixas e tudo que vai com a gola.' },
           { to: '/loja?linha=no-gi', title: 'No-Gi', slot: media.noGi, text: 'Rash guards, shorts e spats para o jogo sem pano.' },
-        ].map((line, i) => (
+        ].map((line) => (
           <Link key={line.title} to={line.to} className={styles.lineTile}>
             <Media slot={line.slot} className={styles.lineImage} />
             <span className={styles.lineCopy}>
-              <span className="mono">0{i + 1} / Linha</span>
               <span className={styles.lineTitle}>{line.title}</span>
               <span className={styles.lineText}>{line.text}</span>
             </span>
@@ -113,10 +111,9 @@ export function HomePage() {
         <section className={`container ${styles.explore}`} aria-labelledby="explore">
           <nav aria-label="Categorias" className={styles.catList}>
             <ol>
-              {categories.data.items.map((c, i) => (
+              {categories.data.items.map((c) => (
                 <li key={c.id}>
                   <Link to={`/categoria/${c.slug}`}>
-                    <span className="mono">{String(i + 1).padStart(2, '0')}</span>
                     {c.name}
                   </Link>
                 </li>
@@ -142,11 +139,11 @@ export function HomePage() {
         <section className={styles.campaign} aria-labelledby="campanha">
           <div className={`container ${styles.campaignInner}`}>
             <div className={styles.campaignCopy}>
-              <p className={styles.campaignEyebrow}>{campaign.type === 'CAMPAIGN' ? 'Edição limitada' : 'Coleção'}</p>
               <h2 id="campanha" className={styles.campaignTitle}>
                 {campaign.name}
               </h2>
               {campaign.description ? <p className={styles.campaignText}>{campaign.description}</p> : null}
+              {campaign.type === 'CAMPAIGN' ? <p className={styles.campaignMeta}>Edição limitada{campaign.endsAt ? ', termina em' : ''}</p> : null}
               {campaign.endsAt ? <Countdown endsAt={campaign.endsAt} /> : null}
               <Link to={`/catalogo/${campaign.slug}`} className={styles.ctaPrimary}>
                 Ver seleção <ArrowRightIcon size={18} />
@@ -164,13 +161,13 @@ export function HomePage() {
 
       {/* 6. Destaques */}
       <section className={`container ${styles.section}`} aria-labelledby="destaques">
-        <SectionHeader id="destaques" title="Em destaque" eyebrow="Escolha da equipe" to="/loja" />
+        <SectionHeader id="destaques" title="Em destaque" to="/loja" />
         {featured.isPending ? (
           <ProductGridSkeleton count={8} />
         ) : featured.isError ? (
           <Alert tone="danger">Não foi possível carregar os destaques.</Alert>
         ) : (
-          <ProductGrid products={featured.data.items} numbered />
+          <ProductGrid products={featured.data.items} />
         )}
       </section>
 
@@ -185,9 +182,8 @@ export function HomePage() {
               <span className={styles.dotDark}>.</span>
             </h2>
             <ol className={styles.pillars}>
-              {pillars.map((p, i) => (
+              {pillars.map((p) => (
                 <li key={p.title}>
-                  <span className="mono">{String(i + 1).padStart(2, '0')} /</span>
                   <strong>{p.title}</strong>
                   <p>{p.text}</p>
                 </li>
@@ -206,7 +202,7 @@ export function HomePage() {
 
       {/* 8. Inspiração */}
       <section className={`container ${styles.section}`} aria-labelledby="inspiracao">
-        <SectionHeader id="inspiracao" title="No tatame" eyebrow="Inspiração" to="/colecoes" linkLabel="Ver coleções" />
+        <SectionHeader id="inspiracao" title="No tatame" to="/colecoes" linkLabel="Ver coleções" />
         <ul className={styles.inspiration}>
           {media.inspiration.map((slot) => (
             <li key={slot.alt}>

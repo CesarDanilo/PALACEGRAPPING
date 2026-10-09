@@ -66,7 +66,6 @@ function OrderDetails({ order, token }: { order: PublicOrder; token: string }) {
   return (
     <div className={styles.status}>
       <section className={`${styles.statusCard} ${tone}`} aria-live="polite">
-        <p className="eyebrow">Pedido {order.number}</p>
         <h2 className={styles.statusTitle}>{orderStatusLabel[order.status]}</h2>
         {order.status === 'PENDING_PAYMENT' ? (
           <p>
@@ -97,7 +96,7 @@ function OrderDetails({ order, token }: { order: PublicOrder; token: string }) {
         <PayButton order={order} token={token} />
       </section>
       <section aria-labelledby="itens">
-        <h2 id="itens" className="eyebrow">
+        <h2 id="itens" className="label">
           Itens
         </h2>
         <ul className={styles.orderItems}>
@@ -141,7 +140,7 @@ export function CheckoutResultPage() {
   const { token, query } = useTrackedOrder(number, true);
   return (
     <>
-      <ListingHero eyebrow="Obrigado" title="Pedido recebido" />
+      <ListingHero title="Pedido recebido" />
       <div className="container">
         {!number || !token ? <NoToken /> : query.isPending ? <LoadingState /> : query.isError ? <Alert tone="danger">Não encontramos este pedido.</Alert> : <OrderDetails order={query.data} token={token} />}
       </div>
@@ -154,7 +153,7 @@ export function OrderTrackingPage() {
   const { token, query } = useTrackedOrder(orderNumber, true);
   return (
     <>
-      <ListingHero eyebrow="Acompanhar" title={`Pedido ${orderNumber}`} />
+      <ListingHero title={`Pedido ${orderNumber}`} />
       <div className="container">
         {!token ? <NoToken /> : query.isPending ? <LoadingState /> : query.isError ? <Alert tone="danger">Não encontramos este pedido.</Alert> : <OrderDetails order={query.data} token={token} />}
       </div>
@@ -174,7 +173,7 @@ export function MyOrdersPage() {
   });
   return (
     <>
-      <ListingHero eyebrow="Conta" title="Meus pedidos" description="Pedidos feitos neste navegador." />
+      <ListingHero title="Meus pedidos" description="Pedidos feitos neste navegador." />
       <div className="container">
         {!tracked.length ? (
           <EmptyState title="Nenhum pedido por aqui">

@@ -1,6 +1,7 @@
 /* Primitivos do design system. Usam somente tokens de src/styles/tokens.css. */
 
 .button {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -118,7 +119,7 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-4);
-  border-left: 3px solid;
+  border: var(--border-width) solid;
   background: var(--surface-raised);
   font-size: var(--text-sm);
 }
@@ -171,46 +172,6 @@
   color: var(--text-muted);
 }
 
-/* ── Modal ── */
-.modal {
-  width: min(640px, calc(100vw - 2rem));
-  max-height: calc(100vh - 4rem);
-  padding: 0;
-  border: var(--border-width) solid var(--border-strong);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-}
-.modal::backdrop {
-  background: rgba(0, 0, 0, 0.7);
-}
-.modalBody {
-  display: grid;
-  gap: var(--space-5);
-  padding: var(--space-6);
-}
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.modalTitle {
-  font-size: var(--display-sm);
-}
-.modalClose {
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: var(--border-width) solid var(--border-strong);
-  background: none;
-  cursor: pointer;
-}
-.modalClose:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* ── Toast ── */
 .toast {
   position: fixed;
@@ -224,7 +185,8 @@
   padding: var(--space-3) var(--space-4);
   background: var(--color-white);
   color: var(--color-black);
-  border-left: 4px solid var(--accent);
+  border: var(--border-width) solid var(--accent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
 }

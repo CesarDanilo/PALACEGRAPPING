@@ -197,10 +197,9 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 }
 
 /** Cabeçalho editorial das listagens: título gigante + contador. */
-export function ListingHero({ eyebrow, title, description, children }: { eyebrow?: string; title: string; description?: string | null; children?: React.ReactNode }) {
+export function ListingHero({ title, description, children }: { title: string; description?: string | null; children?: React.ReactNode }) {
   return (
     <header className={`container ${styles.hero}`}>
-      {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
       <h1 className={styles.heroTitle}>
         {title}
         <span className={styles.dot}>.</span>

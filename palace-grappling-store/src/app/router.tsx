@@ -1,18 +1,12 @@
+import { lazy, Suspense, type ComponentType } from 'react';
 import { createBrowserRouter, Outlet, type RouteObject } from 'react-router';
-import { AdminSessionProvider } from '@/features/admin-auth/AdminSession';
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { LoadingState } from '@/components/ui/Feedback';
 import { StoreLayout } from '@/layouts/StoreLayout';
-import { CatalogsPage, CategoriesPage, InventoryPage, LinksPage } from '@/pages/admin/CatalogAdminPages';
-import { DashboardPage } from '@/pages/admin/DashboardPage';
-import { LoginPage } from '@/pages/admin/LoginPage';
-import { CustomerDetailPage, CustomersPage, EntriesPage, FinancePage, OrderDetailPage, OrdersPage, ReportsPage, SettingsPage } from '@/pages/admin/OperationsPages';
-import { ProductEditorPage, ProductsPage } from '@/pages/admin/ProductsPages';
 import {
   AboutPage,
   CartPage,
   CatalogPage,
   CategoryPage,
-  CheckoutPage,
   CheckoutResultPage,
   CollectionsPage,
   ContactPage,
@@ -26,6 +20,21 @@ import {
   ShopPage,
 } from '@/pages/store/StorePages';
 
+// Checkout (React Hook Form + Zod) também é sob demanda: só carrega quem vai finalizar.
+const CheckoutPage = lazy(async () => ({ default: (await import('@/pages/store/CheckoutPage')).CheckoutPage }));
+
+// O painel é carregado sob demanda: quem só compra não baixa o código administrativo.
+const adminModule = () => import('./admin-routes');
+type AdminModule = Awaited<ReturnType<typeof adminModule>>;
+type AnyPage = ComponentType<Record<string, unknown>>;
+const lazyAdmin = (name: keyof AdminModule) => lazy(async () => ({ default: (await adminModule())[name] as unknown as AnyPage }));
+const AdminRoot = lazyAdmin('AdminRoot');
+const AdminArea = lazyAdmin('AdminArea');
+const page = (name: keyof AdminModule, props: Record<string, unknown> = {}, key?: string) => {
+  const Page = lazyAdmin(name);
+  return <Page key={key} {...props} />;
+};
+
 export const routes: RouteObject[] = [
   {
     element: <StoreLayout />,
@@ -38,7 +47,14 @@ export const routes: RouteObject[] = [
       { path: 'catalogo/:slug', element: <CatalogPage /> },
       { path: 'c/:token', element: <ExclusiveLinkPage /> },
       { path: 'carrinho', element: <CartPage /> },
-      { path: 'checkout', element: <CheckoutPage /> },
+      {
+        path: 'checkout',
+        element: (
+          <Suspense fallback={<LoadingState label="Carregando checkout…" />}>
+            <CheckoutPage />
+          </Suspense>
+        ),
+      },
       { path: 'checkout/sucesso', element: <CheckoutResultPage /> },
       { path: 'pedido/:orderNumber', element: <OrderTrackingPage /> },
       { path: 'pedidos', element: <MyOrdersPage /> },
@@ -51,32 +67,34 @@ export const routes: RouteObject[] = [
   {
     path: 'admin',
     element: (
-      <AdminSessionProvider>
-        <Outlet />
-      </AdminSessionProvider>
+      <Suspense fallback={<LoadingState label="Carregando painel…" />}>
+        <AdminRoot>
+          <Outlet />
+        </AdminRoot>
+      </Suspense>
     ),
     children: [
-      { path: 'login', element: <LoginPage /> },
+      { path: 'login', element: page('LoginPage') },
       {
-        element: <AdminLayout />,
+        element: <AdminArea />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'produtos', element: <ProductsPage /> },
-          { path: 'produtos/novo', element: <ProductEditorPage /> },
-          { path: 'produtos/:id', element: <ProductEditorPage /> },
-          { path: 'categorias', element: <CategoriesPage /> },
-          { path: 'estoque', element: <InventoryPage /> },
-          { path: 'pedidos', element: <OrdersPage /> },
-          { path: 'pedidos/:id', element: <OrderDetailPage /> },
-          { path: 'clientes', element: <CustomersPage /> },
-          { path: 'clientes/:id', element: <CustomerDetailPage /> },
-          { path: 'catalogos', element: <CatalogsPage /> },
-          { path: 'links', element: <LinksPage /> },
-          { path: 'financeiro', element: <FinancePage /> },
-          { path: 'financeiro/receitas', element: <EntriesPage key="income" kind="INCOME" /> },
-          { path: 'financeiro/despesas', element: <EntriesPage key="expense" kind="EXPENSE" /> },
-          { path: 'relatorios', element: <ReportsPage /> },
-          { path: 'configuracoes', element: <SettingsPage /> },
+          { index: true, element: page('DashboardPage') },
+          { path: 'produtos', element: page('ProductsPage') },
+          { path: 'produtos/novo', element: page('ProductEditorPage') },
+          { path: 'produtos/:id', element: page('ProductEditorPage') },
+          { path: 'categorias', element: page('CategoriesPage') },
+          { path: 'estoque', element: page('InventoryPage') },
+          { path: 'pedidos', element: page('OrdersPage') },
+          { path: 'pedidos/:id', element: page('OrderDetailPage') },
+          { path: 'clientes', element: page('CustomersPage') },
+          { path: 'clientes/:id', element: page('CustomerDetailPage') },
+          { path: 'catalogos', element: page('CatalogsPage') },
+          { path: 'links', element: page('LinksPage') },
+          { path: 'financeiro', element: page('FinancePage') },
+          { path: 'financeiro/receitas', element: page('EntriesPage', { kind: 'INCOME' }, 'income') },
+          { path: 'financeiro/despesas', element: page('EntriesPage', { kind: 'EXPENSE' }, 'expense') },
+          { path: 'relatorios', element: page('ReportsPage') },
+          { path: 'configuracoes', element: page('SettingsPage') },
         ],
       },
     ],

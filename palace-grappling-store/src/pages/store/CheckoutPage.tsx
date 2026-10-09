@@ -90,7 +90,7 @@ export function CheckoutPage() {
   const e = formState.errors;
   return (
     <>
-      <ListingHero eyebrow="Pagamento seguro" title="Finalizar compra" />
+      <ListingHero title="Finalizar compra" />
       <form className={`container ${styles.layout}`} onSubmit={onSubmit} noValidate>
         <div className={styles.form}>
           {error ? (

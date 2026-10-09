@@ -62,7 +62,7 @@ export function CartPage() {
   const lines = new Map(quote.data?.lines.map((l) => [l.variantId, l]));
   return (
     <>
-      <ListingHero eyebrow={state.context.kind === 'link' ? 'Seleção exclusiva' : undefined} title="Carrinho" />
+      <ListingHero title="Carrinho" />
       <div className={`container ${styles.layout}`}>
         <section aria-label="Itens do carrinho">
           {quote.isError ? <Alert tone="danger">Não foi possível atualizar preços e estoque agora. Tente novamente.</Alert> : null}

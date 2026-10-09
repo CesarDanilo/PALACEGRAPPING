@@ -61,6 +61,8 @@ export function BeltBar({ className }: { className?: string }) {
 /** Selo circular com texto em volta (gira devagar; parado com prefers-reduced-motion). */
 export function CircleBadge({ text, children, tone = 'dark' }: { text: string; children?: React.ReactNode; tone?: 'dark' | 'paper' }) {
   const id = useId();
+  // Repete o texto até ~34 caracteres para o espaçamento ficar uniforme em volta do anel.
+  const ring = `${text} · `.repeat(Math.max(1, Math.round(34 / (text.length + 3))));
   return (
     <span className={`${styles.badge} ${tone === 'paper' ? styles.badgePaper : ''}`} aria-hidden="true">
       <svg viewBox="0 0 120 120" className={styles.badgeRing}>
@@ -68,7 +70,8 @@ export function CircleBadge({ text, children, tone = 'dark' }: { text: string; c
           <path id={id} d="M60 60m-46 0a46 46 0 1 1 92 0a46 46 0 1 1 -92 0" />
         </defs>
         <text>
-          <textPath href={`#${id}`}>{`${text} · ${text} · `}</textPath>
+          {/* textLength fecha o círculo exatamente, sem sobrepor o início do texto (2πr ≈ 289). */}
+          <textPath href={`#${id}`} textLength={286} lengthAdjust="spacing">{ring}</textPath>
         </text>
       </svg>
       <span className={styles.badgeCenter}>{children ?? <Monogram size={34} title={null} />}</span>

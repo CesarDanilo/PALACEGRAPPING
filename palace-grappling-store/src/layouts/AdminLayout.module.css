@@ -56,8 +56,7 @@
 }
 .active {
   background: var(--surface-control);
-  color: var(--text-primary) !important;
-  box-shadow: inset 3px 0 0 var(--accent);
+  color: var(--accent) !important;
 }
 .user {
   display: flex;

@@ -101,14 +101,6 @@ p {
   padding-inline: var(--gutter);
 }
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
 
 /* Ponto final em limão nos títulos de impacto (assinatura da marca). */
 .dot::after {
@@ -116,8 +108,39 @@ p {
   color: var(--accent);
 }
 
+/* Dados: SKU, número de pedido, rastreio. */
 .mono {
   font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+}
+
+/* Superfícies do navegador também seguem a marca. */
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+html {
+  caret-color: var(--accent);
+  scrollbar-color: var(--color-graphite-600) var(--surface-page);
+  accent-color: var(--accent);
+}
+a {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+table,
+output,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Título pequeno (rodapé, seções de detalhe). É o próprio título, não um sobretítulo. */
+.label {
+  font-family: var(--font-label);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  line-height: var(--leading-snug);
   text-transform: uppercase;
+  color: var(--text-secondary);
 }

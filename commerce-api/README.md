@@ -2,7 +2,7 @@
 
 API comercial **genérica e multi-tenant**: produtos, variantes, estoque, catálogos, links exclusivos, clientes, checkout, pagamentos e financeiro. Nenhuma marca é conhecida pelo código; cada loja é um *tenant* configurado por dados. A primeira instalação atende a loja Palace Grappling, mas nada nesta base depende dela.
 
-> Estado: **fase 1 concluída (fundação)**, com boa parte do domínio das fases 3 e 4 já implementado e testado no backend. Veja [Limitações e roadmap](#limitações-e-roadmap) para o que ainda falta.
+> Estado: **fases 1 a 5 concluídas** (API completa, testada e empacotada). Veja [Limitações e roadmap](#limitações-e-roadmap) para o que ainda falta.
 
 ## Sumário
 
@@ -139,6 +139,7 @@ Validadas na inicialização (`src/config/env.ts`); a API não sobe com configur
 | `PUBLIC_API_URL`, `STOREFRONT_URL` | pagamentos | URL de notificação e de retorno do comprador. |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | upload | Sem elas, upload responde 503. |
 | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` | pagamentos | Sem ambas, o checkout cria o pedido mas não gera cobrança. |
+| `LOGIN_RATE_LIMIT` | não | Tentativas de login por IP a cada 15 min (padrão 10). |
 | `EXPIRATION_SWEEP_SECONDS` | não | Intervalo da varredura de pedidos vencidos (0 desliga). |
 | `TEST_DATABASE_URL` | testes | Banco descartável; o nome precisa conter `test`. |
 
@@ -191,7 +192,7 @@ Acesso: **público**; **loja** = exige `X-Store`; **usuário** = Bearer; **tenan
 | `GET /orders` · `GET /orders/{id}` · `PATCH /orders/{id}/status` · `PATCH /orders/{id}/shipping` | tenant | Pedidos, status, envio, cancelamento, devolução. |
 | `GET /dashboard` | tenant | Indicadores do painel. |
 | `GET /finance/summary` · `GET /finance/transactions` · `PATCH /finance/transactions/{id}` · `POST /finance/expenses` · `POST /finance/incomes` · `GET/POST /finance/categories` · `GET /finance/reports/cashflow` | tenant | Financeiro. |
-| `GET /public/store` · `/public/categories` · `/public/products` · `/public/products/{slug}` · `/public/catalogs/{slug}` | loja | Vitrine. |
+| `GET /public/store` · `/public/categories` · `/public/products` · `/public/products/{slug}` · `/public/catalogs` · `/public/catalogs/{slug}` · `/public/facets` | loja | Vitrine: produtos, catálogos públicos em vigor e valores para filtros (linhas, tamanhos, cores). |
 | `GET /public/catalog-links/{token}` | público | Vitrine do link exclusivo. |
 | `POST /checkout/quote` · `POST /checkout/orders` (`Idempotency-Key`) | loja | Recalcular carrinho e criar pedido. |
 | `GET /public/orders/{number}` (`X-Order-Token`) · `POST /payments` | loja | Acompanhamento e (re)início do pagamento. |
@@ -203,7 +204,7 @@ O documento OpenAPI é gerado dos mesmos schemas Zod usados na validação, ent�
 
 - **Senhas:** Argon2id (m = 19 MiB, t = 2, p = 1, parâmetros OWASP). Login com e-mail inexistente também executa um hash, para não revelar quais e-mails existem.
 - **Access token:** JWT HS256, 15 min (`ACCESS_TOKEN_TTL_SECONDS`), com `iss`/`aud` verificados. Contém apenas `sub` e `email`.
-- **Refresh token:** opaco (256 bits), em cookie `httpOnly` restrito a `/api/v1/auth`, guardado no banco como SHA-256. Cada uso **rotaciona**; reutilizar um token já rotacionado **revoga a família inteira** (sinal de roubo). Validade: `REFRESH_TOKEN_TTL_DAYS` (30).
+- **Refresh token:** opaco (256 bits), em cookie `httpOnly` restrito a `/api/v1/auth`, guardado no banco como SHA-256. Cada uso **rotaciona**; reutilizar um token já rotacionado **revoga a família inteira** (sinal de roubo). Há uma tolerância de 20 s para renovações simultâneas com o mesmo cookie (duas abas abertas, recarga durante uma renovação), que recebem uma sessão nova da mesma família em vez de derrubar o usuário. Validade: `REFRESH_TOKEN_TTL_DAYS` (30).
 - **Papéis e permissões** (`src/domain/access/permissions.ts`):
 
 | Permissão | OPERATOR | ADMIN | OWNER |
@@ -286,9 +287,9 @@ Webhooks repetidos não duplicam receita (unicidade por `paymentId`). Estorno (`
 
 - **CORS:** apenas `CORS_ORIGINS`, com credenciais (necessário para o cookie de refresh). Requisições sem `Origin` (servidor a servidor, webhooks) são aceitas.
 - **Validação:** todo body/query/params passa por Zod; corpo JSON limitado a 200 KB; uploads limitados por `UPLOAD_MAX_BYTES`.
-- **Rate limiting** (em memória, por IP): login/refresh 10 por 15 min; checkout/pagamentos 30 por minuto; demais rotas 600 por minuto. Com várias instâncias, troque por um store compartilhado (Redis).
+- **Rate limiting** (em memória, por IP): login `LOGIN_RATE_LIMIT` por 15 min (padrão 10); renovação de sessão 300 por 15 min; checkout/pagamentos 30 por minuto; demais rotas 600 por minuto. Com várias instâncias, troque por um store compartilhado (Redis).
 - **Cabeçalhos:** Helmet (CSP, HSTS, etc.); `x-powered-by` desativado; `trust proxy` em produção.
-- **Logs:** pino estruturado com `requestId` (também devolvido em `X-Request-Id`); `Authorization`, cookies, `X-Order-Token`, senhas e tokens são redigidos.
+- **Logs:** pino estruturado (JSON em produção; formato legível em desenvolvimento quando `pino-pretty` está instalado) com `requestId` (também devolvido em `X-Request-Id`); `Authorization`, cookies, `X-Order-Token`, senhas e tokens são redigidos.
 - **Erros:** formato único; erros inesperados viram 500 genérico sem stack para o cliente.
 - **Dados públicos mínimos:** a vitrine não expõe estoque exato (só `ok`/`low`/`out`), ids de tenant, caminhos de Storage nem dados de clientes. Números de pedido não são sequenciais; o acompanhamento exige o token do pedido.
 - **Produção:** a API recusa iniciar com `COOKIE_SECURE=false`, com o segredo JWT de exemplo ou com Mercado Pago sem segredo de webhook.
@@ -305,7 +306,7 @@ Os testes de integração sobem a API real contra um PostgreSQL real (`TEST_DATA
 
 Somente dependências externas usam dublês: `FakePaymentProvider` e `MemoryStorage` (`tests/support/harness.ts`). Eles **não** comprovam a integração real com Mercado Pago ou Supabase.
 
-Cobertura atual (58 testes): validação de produto; isolamento entre lojas; autorização por papel; sessão (rotação e reuso de refresh token); catálogos públicos e privados; validade, expiração, desativação e limite de uso de links; recálculo de preço no servidor; total divergente; estoque insuficiente; compras concorrentes; idempotência (inclusive concorrente); webhooks repetidos, fora de ordem, com assinatura inválida e com valor divergente; cancelamento e expiração com devolução de estoque; cálculos financeiros; upload com validação de tipo real; health/ready/OpenAPI.
+Cobertura atual (59 testes): validação de produto; isolamento entre lojas; autorização por papel; sessão (rotação, tolerância a renovação simultânea e revogação por reuso de refresh token); catálogos públicos e privados, listagem de catálogos em vigor e filtros da vitrine; validade, expiração, desativação e limite de uso de links; recálculo de preço no servidor; total divergente; estoque insuficiente; compras concorrentes; idempotência (inclusive concorrente); webhooks repetidos, fora de ordem, com assinatura inválida e com valor divergente; cancelamento e expiração com devolução de estoque; cálculos financeiros; upload com validação de tipo real; health/ready/OpenAPI.
 
 ## Docker e deploy
 

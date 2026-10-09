@@ -2,8 +2,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  background: rgba(7, 7, 7, 0.94);
-  backdrop-filter: blur(8px);
+  background: var(--surface-page);
   border-bottom: var(--border-width) solid var(--border-subtle);
 }
 .bar {

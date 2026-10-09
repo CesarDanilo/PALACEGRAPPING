@@ -463,10 +463,10 @@ export function FinancePage() {
         actions={
           <>
             <button type="button" className={styles.linkButton} onClick={() => setOffset((o) => o - 1)}>
-              ← Mês anterior
+              Mês anterior
             </button>
             <button type="button" className={styles.linkButton} disabled={offset >= 0} onClick={() => setOffset((o) => o + 1)}>
-              Próximo mês →
+              Próximo mês
             </button>
             <Link to="/admin/financeiro/receitas" className={styles.linkButton}>
               Receitas

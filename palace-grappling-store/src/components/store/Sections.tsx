@@ -4,11 +4,10 @@ import { ArrowRightIcon, ChatIcon, MedalIcon, ShieldIcon, TruckIcon } from '@/co
 import styles from './store.module.css';
 
 /** Título de seção: display condensada + seta, link "ver tudo" à direita. */
-export function SectionHeader({ id, title, eyebrow, to, linkLabel = 'Ver tudo' }: { id: string; title: string; eyebrow?: string; to?: string; linkLabel?: string }) {
+export function SectionHeader({ id, title, to, linkLabel = 'Ver tudo' }: { id: string; title: string; to?: string; linkLabel?: string }) {
   return (
     <header className={styles.sectionHeader}>
       <div>
-        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
         <h2 id={id} className={styles.sectionTitle}>
           {title} <ArrowRightIcon size={28} className={styles.sectionArrow} />
         </h2>

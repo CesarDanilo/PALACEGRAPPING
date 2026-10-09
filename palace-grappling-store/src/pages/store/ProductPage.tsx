@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { Slashes } from '@/brand/Brand';
 import { FabricIcon, MinusIcon, PlusIcon, RulerIcon, ShieldIcon, TruckIcon } from '@/components/icons';
 import { ProductImage } from '@/components/media/Media';
 import { ProductGrid } from '@/components/store/ProductCard';
-import { lineLabel } from '@/components/store/ProductListing';
+
 import { Price } from '@/components/store/Price';
 import { SectionHeader } from '@/components/store/Sections';
 import { Button } from '@/components/ui/Button';
 import { Alert, AvailabilityBadge, LoadingState } from '@/components/ui/Feedback';
-import { Modal } from '@/components/ui/Modal';
 import { notify } from '@/components/ui/Toast';
 import { cart, MAX_QUANTITY } from '@/features/cart/cart-store';
 import { addToCartBlock, resolveVariant, unavailableSizes, variantAxes, variantLabelOf } from '@/features/catalog/variant-selection';
@@ -54,7 +52,6 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
   const [color, setColor] = useState<string | null>(axes.colors.length === 1 ? axes.colors[0]!.name : null);
   const [quantity, setQuantity] = useState(1);
   const [imageIndex, setImageIndex] = useState(0);
-  const [guideOpen, setGuideOpen] = useState(false);
   const [tried, setTried] = useState(false);
 
   const selection = { size, color };
@@ -108,9 +105,6 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
         </section>
 
         <section className={styles.buy} aria-labelledby="product-title">
-          <p className="eyebrow">
-            {product.line ? lineLabel(product.line) : 'Palace'} <Slashes /> {product.category?.name}
-          </p>
           <h1 id="product-title" className={styles.title}>
             {product.name}
           </h1>
@@ -149,11 +143,6 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
             <fieldset className={styles.option}>
               <legend>
                 Tamanho{size ? <span>: {size}</span> : null}
-                {product.sizeGuide ? (
-                  <button type="button" className={styles.guideLink} onClick={() => setGuideOpen(true)}>
-                    <RulerIcon size={16} /> Guia de tamanhos
-                  </button>
-                ) : null}
               </legend>
               <div className={styles.sizes} role="radiogroup" aria-label="Tamanho">
                 {axes.sizes.map((s) => {
@@ -175,6 +164,15 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
                 })}
               </div>
             </fieldset>
+          ) : null}
+
+          {product.sizeGuide ? (
+            <details className={styles.guideBox}>
+              <summary>
+                <RulerIcon size={16} /> Guia de tamanhos
+              </summary>
+              <pre className={styles.guide}>{product.sizeGuide}</pre>
+            </details>
           ) : null}
 
           <div className={styles.addRow}>
@@ -230,7 +228,7 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
 
           {product.description ? (
             <section className={styles.description} aria-labelledby="descricao">
-              <h2 id="descricao" className="eyebrow">
+              <h2 id="descricao" className="label">
                 Descrição
               </h2>
               <p>{product.description}</p>
@@ -249,16 +247,11 @@ function ProductView({ product, related }: { product: PublicProduct; related: Pu
 
       {related.length ? (
         <section className={`container ${styles.related}`} aria-labelledby="relacionados">
-          <SectionHeader id="relacionados" title="Combina com" eyebrow="Relacionados" />
+          <SectionHeader id="relacionados" title="Combina com" />
           <ProductGrid products={related} context={context} />
         </section>
       ) : null}
 
-      {product.sizeGuide ? (
-        <Modal open={guideOpen} onClose={() => setGuideOpen(false)} title="Guia de tamanhos">
-          <pre className={styles.guide}>{product.sizeGuide}</pre>
-        </Modal>
-      ) : null}
     </>
   );
 }

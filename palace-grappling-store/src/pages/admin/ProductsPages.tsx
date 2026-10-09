@@ -333,7 +333,7 @@ function ProductEditor({ product }: { product?: AdminProduct }) {
                 </tbody>
               </table>
               <button type="button" className={styles.linkButton} onClick={() => setDrafts((all) => [...all, { sku: '', size: '', color: all.at(-1)?.color ?? '', colorHex: all.at(-1)?.colorHex ?? '#0a0a0a', stock: 0 }])}>
-                + Variante
+                Adicionar variante
               </button>
             </Panel>
           ) : null}
@@ -471,11 +471,11 @@ function ImagesPanel({ product, readOnly }: { product: AdminProduct; readOnly: b
                         Principal
                       </button>
                     ) : null}
-                    <button type="button" className={styles.linkButton} disabled={i === 0} aria-label="Mover para a esquerda" onClick={() => swap.mutate([i, i - 1])}>
-                      ←
+                    <button type="button" className={styles.linkButton} disabled={i === 0} onClick={() => swap.mutate([i, i - 1])}>
+                      Antes
                     </button>
-                    <button type="button" className={styles.linkButton} disabled={i === images.length - 1} aria-label="Mover para a direita" onClick={() => swap.mutate([i, i + 1])}>
-                      →
+                    <button type="button" className={styles.linkButton} disabled={i === images.length - 1} onClick={() => swap.mutate([i, i + 1])}>
+                      Depois
                     </button>
                     <button type="button" className={styles.linkButton} onClick={() => window.confirm('Excluir esta foto?') && remove.mutate(img.id)}>
                       Excluir

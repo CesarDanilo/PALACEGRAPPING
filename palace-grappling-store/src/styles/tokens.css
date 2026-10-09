@@ -56,7 +56,10 @@
   /* ── Tipografia ── */
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Mono só para dados (SKU, número de pedido, código de rastreio, contagem). */
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* Rótulos curtos em caixa alta (filtros, legendas, metadados). */
+  --font-label: var(--font-sans);
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -65,8 +68,8 @@
   --text-xl: 1.375rem;
   --display-sm: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
   --display-md: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);
-  --display-lg: clamp(3.25rem, 1.8rem + 7vw, 8rem);
-  --display-xl: clamp(4rem, 2rem + 10vw, 11.5rem);
+  --display-lg: clamp(3rem, 1.8rem + 5vw, 5rem);
+  --display-xl: clamp(3.5rem, 2rem + 6vw, 6rem);
 
   --weight-regular: 400;
   --weight-medium: 500;
@@ -100,6 +103,7 @@
   --radius-none: 0;
   --radius-sm: 2px;
   --radius-md: 6px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
   --border-width: 1px;
 

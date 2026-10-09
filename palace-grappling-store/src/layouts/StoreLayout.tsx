@@ -140,9 +140,8 @@ export function StoreLayout() {
             <SearchForm onDone={() => setMenuOpen(false)} />
             <nav aria-label="Menu móvel">
               <ol className={styles.drawerNav}>
-                {nav.map((item, i) => (
+                {nav.map((item) => (
                   <li key={item.label}>
-                    <span className="mono">{String(i + 1).padStart(2, '0')}</span>
                     <Link to={item.to}>{item.label}</Link>
                   </li>
                 ))}
@@ -168,7 +167,7 @@ export function StoreLayout() {
               </p>
             </div>
             <nav aria-label="Loja" className={styles.footerCol}>
-              <p className="eyebrow">Loja</p>
+              <h2 className="label">Loja</h2>
               <ul>
                 <li><Link to="/loja?linha=gi">Linha Gi</Link></li>
                 <li><Link to="/loja?linha=no-gi">Linha No-Gi</Link></li>
@@ -177,7 +176,7 @@ export function StoreLayout() {
               </ul>
             </nav>
             <nav aria-label="Ajuda" className={styles.footerCol}>
-              <p className="eyebrow">Ajuda</p>
+              <h2 className="label">Ajuda</h2>
               <ul>
                 <li><Link to="/pedidos">Acompanhar pedido</Link></li>
                 <li><Link to="/contato">Contato</Link></li>
@@ -186,7 +185,7 @@ export function StoreLayout() {
               </ul>
             </nav>
             <div className={styles.footerCol}>
-              <p className="eyebrow">Contato</p>
+              <h2 className="label">Contato</h2>
               <ul>
                 {store.data?.contactEmail ? <li><a href={`mailto:${store.data.contactEmail}`}>{store.data.contactEmail}</a></li> : null}
                 {store.data?.contactPhone ? <li><a href={`tel:${store.data.contactPhone.replace(/\D/g, '')}`}>{store.data.contactPhone}</a></li> : null}
@@ -196,8 +195,8 @@ export function StoreLayout() {
           </div>
           <BeltBar />
           <div className={styles.footerBottom}>
-            <span className="mono">© {new Date().getFullYear()} Palace Grappling</span>
-            <span className="mono">Oss.</span>
+            <span>© {new Date().getFullYear()} Palace Grappling</span>
+            <span>Oss.</span>
           </div>
         </div>
       </footer>

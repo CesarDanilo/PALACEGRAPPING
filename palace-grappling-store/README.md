@@ -1,52 +1,56 @@
 # palace-grappling-store
 
-Loja digital e painel administrativo da **Palace Grappling** (Brazilian Jiu-Jitsu e esportes de combate). Consome a [`commerce-api`](../commerce-api) apenas pelo contrato HTTP: não importa nenhum arquivo do backend.
+Loja digital e painel administrativo da **Palace Grappling** (Brazilian Jiu-Jitsu e esportes de combate). Consome a [`commerce-api`](../commerce-api) apenas pelo contrato HTTP e não importa nenhum arquivo do backend.
 
-> Estado: **fase 1 (fundação)**. Rotas, integração com a API, sessão administrativa, carrinho, regras de variante e validação de checkout estão prontos e testados. A **identidade visual e os layouts da loja aguardam a análise das três imagens de referência**; até lá as páginas públicas usam uma estrutura provisória (`PageShell`). Veja [Limitações e pendências](#limitações-e-pendências).
+- **Direção visual:** [`../docs/DIRECAO-VISUAL.md`](../docs/DIRECAO-VISUAL.md), derivada das três referências.
+- **Sistema visual:** [`DESIGN.md`](DESIGN.md), com tokens, tipografia, marca e regras de uso.
 
 ## Tecnologias
 
 | Item | Versão |
 | --- | --- |
 | React | 19.3 |
-| TypeScript | 6.0 (strict) |
+| TypeScript | 6.0 (strict, `noUncheckedIndexedAccess`) |
 | Vite | 8.3 |
-| React Router | 7.18 (modo data router) |
+| React Router | 7.18 (data router, painel e checkout carregados sob demanda) |
 | TanStack Query | 5.104 |
 | React Hook Form + Zod | 7.89 + 4.6 (`@hookform/resolvers` 5) |
-| Fontes | Barlow Condensed (display) e Inter (texto), via Fontsource, sem CDN externo |
-| Testes | Vitest 5, Testing Library, jsdom |
+| Fontes | Barlow Condensed, Inter e IBM Plex Mono via Fontsource (sem CDN externo) |
+| Testes | Vitest 5 + Testing Library (unitários e componentes), Playwright 1.63 (E2E) |
 
-Sem biblioteca de componentes: primitivos próprios em `src/components/ui`, estilizados com CSS Modules e tokens.
+Não há biblioteca de componentes: os primitivos são próprios (`src/components/ui`), em CSS Modules e tokens.
 
 ## Estrutura de pastas
 
 ```
 palace-grappling-store/
-├── public/                    # favicon e arquivos estáticos
+├── public/                    # favicon
 ├── src/
-│   ├── app/                   # App (providers) e router (todas as rotas)
-│   ├── components/ui/         # Button, TextField, SelectField, Alert, estados, badges
-│   ├── config/env.ts          # variáveis VITE_*
+│   ├── app/                   # App (providers), router, admin-routes (pacote do painel)
+│   ├── brand/                 # logotipo, monograma, faixa com graus, selo circular
+│   ├── components/
+│   │   ├── ui/                # Button, campos, alertas, estados, toast
+│   │   ├── store/             # card/grade de produto, preço, listagem com filtros, seções
+│   │   ├── media/             # foto oficial ou ilustração temporária
+│   │   └── icons.tsx          # ícones SVG de traço único
+│   ├── content/media.ts       # slots de fotos editoriais (trocar pelas oficiais aqui)
 │   ├── features/
-│   │   ├── admin-auth/        # sessão do painel (login, refresh, troca de loja)
-│   │   ├── cart/              # carrinho local (useSyncExternalStore + localStorage)
+│   │   ├── admin-auth/        # sessão do painel
+│   │   ├── cart/              # carrinho local + cotação no servidor
 │   │   ├── catalog/           # regras de seleção de variante
-│   │   └── checkout/          # schema Zod do checkout, tokens de acompanhamento
-│   ├── layouts/               # StoreLayout (loja) e AdminLayout (painel)
-│   ├── lib/
-│   │   ├── api/               # client (fetch + sessão), contrato (types), storefront
-│   │   └── money.ts           # formatação de centavos
-│   ├── pages/
-│   │   ├── store/             # páginas públicas (estrutura provisória)
-│   │   └── admin/             # login, painel e seções
+│   │   └── checkout/          # schema, idempotência, tokens de acompanhamento
+│   ├── layouts/               # StoreLayout e AdminLayout
+│   ├── lib/api/               # client (fetch + sessão), contrato, endpoints da loja e do painel
+│   ├── pages/store/           # home, listagens, produto, carrinho, checkout, pedidos, institucionais
+│   ├── pages/admin/           # login, painel e todas as seções administrativas
 │   └── styles/                # tokens.css e base.css
-├── tests/                     # lógica, fluxos do painel e da loja
-├── Dockerfile · nginx.conf
+├── tests/                     # Vitest
+├── e2e/                       # Playwright
+├── Dockerfile · nginx.conf · playwright.config.ts
 └── .env.example
 ```
 
-## Instalação e execução
+## Instalação e execução local
 
 ```bash
 npm install
@@ -54,83 +58,126 @@ cp .env.example .env
 npm run dev          # http://localhost:5190 (a API deve estar em http://localhost:3350)
 ```
 
-Em desenvolvimento o Vite encaminha `/api` para a API (`DEV_API_PROXY_TARGET`), então loja e API ficam na mesma origem e o cookie de sessão funciona com `SameSite=Lax`.
+Em desenvolvimento o Vite encaminha `/api` para a API (`DEV_API_PROXY_TARGET`). Assim loja e API ficam na mesma origem e o cookie de sessão funciona com `SameSite=Lax`.
 
-Painel: `http://localhost:5190/admin/login`, com o usuário criado pelo seed da API (`admin@example.com` e a senha definida em `SEED_ADMIN_PASSWORD`).
+Para acessar o painel, abra `http://localhost:5190/admin/login` e entre com o usuário do seed da API (`admin@example.com` e a senha definida em `SEED_ADMIN_PASSWORD`).
 
-Scripts: `dev`, `build` (typecheck + build), `preview`, `typecheck`, `lint`, `test`.
+Scripts: `dev`, `build` (typecheck + build), `preview`, `typecheck`, `lint`, `test`, `test:e2e`.
 
 ## Variáveis de ambiente
 
 | Variável | Descrição |
 | --- | --- |
-| `VITE_API_URL` | URL da API. Vazio = mesma origem (`/api/v1`). Em produção com domínios separados, use a URL completa. |
-| `VITE_STORE_SLUG` | Slug da loja na API (enviado no cabeçalho `X-Store`). Padrão `palace-grappling`. |
+| `VITE_API_URL` | URL da API. Vazio = mesma origem (`/api/v1`). Com domínios separados, use a URL completa e inclua a origem da loja em `CORS_ORIGINS` da API. |
+| `VITE_STORE_SLUG` | Slug da loja na API (cabeçalho `X-Store`). Padrão `palace-grappling`. |
 | `DEV_API_PROXY_TARGET` | Só desenvolvimento: destino do proxy `/api`. |
 
-Variáveis `VITE_*` são públicas e embutidas no build. **Nunca** coloque chaves (ex.: `service_role` do Supabase ou tokens do Mercado Pago) no frontend.
+Variáveis `VITE_*` são públicas e entram no build. **Nunca** coloque chaves no frontend (como a `service_role` do Supabase ou tokens do Mercado Pago).
 
 ## Build e Docker
 
 ```bash
-npm run build                    # gera dist/
+npm run build
 docker build --build-arg VITE_API_URL=https://api.exemplo.com -t palace-grappling-store .
 docker run -p 8090:8080 palace-grappling-store
 ```
 
-Imagem multi-stage: build em `node:22-alpine`, servida por `nginx-unprivileged` (porta 8080, usuário sem privilégios), com fallback de SPA, cache longo para `/assets` e cabeçalhos de segurança. Como `VITE_*` entra no build, trocar a URL da API exige novo build.
+A imagem é multi-stage: o build roda em `node:22-alpine` e o site é servido por `nginx-unprivileged` na porta 8080, com fallback de SPA, cache longo em `/assets` e cabeçalhos de segurança. Como `VITE_*` entra no build, trocar a API exige novo build.
+
+O bundle principal da loja não inclui o painel nem o checkout, que são carregados sob demanda.
 
 ## Rotas
 
-**Loja** (`StoreLayout`): `/`, `/colecoes`, `/categoria/:slug`, `/produto/:slug`, `/catalogo/:slug`, `/c/:token` (link exclusivo), `/carrinho`, `/checkout`, `/checkout/sucesso`, `/pedido/:orderNumber`, `/sobre`, `/contato` e 404.
+**Loja**
 
-**Painel** (`AdminLayout`, protegido): `/admin/login`, `/admin`, `/admin/produtos`, `/admin/produtos/novo`, `/admin/categorias`, `/admin/estoque`, `/admin/pedidos`, `/admin/pedidos/:id`, `/admin/clientes`, `/admin/catalogos`, `/admin/links`, `/admin/financeiro`, `/admin/financeiro/receitas`, `/admin/financeiro/despesas`, `/admin/relatorios`, `/admin/configuracoes`. Itens do menu aparecem conforme as permissões do papel; a API revalida tudo.
+| Rota | Conteúdo |
+| --- | --- |
+| `/` | Homepage editorial: hero com mini-card do último lançamento, benefícios, lançamentos, linhas Gi/No-Gi, categorias + colagem, campanha com contagem regressiva real, destaques, manifesto, inspiração. |
+| `/loja` | Vitrine completa: busca (`q`), linha, categoria, tamanho, cor, disponibilidade, ordenação e paginação na URL. |
+| `/colecoes` | Mosaico de catálogos públicos e categorias. |
+| `/categoria/:slug` | Produtos da categoria. |
+| `/produto/:slug` | Galeria, variantes obrigatórias, quantidade, guia de tamanhos, entrega, relacionados. |
+| `/catalogo/:slug` | Catálogo público compartilhável. |
+| `/c/:token` | Link exclusivo: a seleção é limitada ao catálogo e o pedido registra a origem. |
+| `/carrinho` · `/checkout` · `/checkout/sucesso` | Carrinho cotado no servidor, checkout e retorno. |
+| `/pedido/:orderNumber` · `/pedidos` | Acompanhamento e pedidos deste navegador. |
+| `/sobre` · `/contato` · `/politicas` | Institucionais. |
 
-Privacidade nas URLs: links exclusivos carregam só o token do catálogo; o acompanhamento de pedido usa o número público e um token guardado no navegador do comprador (`X-Order-Token`), nunca dados do cliente na URL.
+**Painel** (rotas protegidas): `/admin/login`, `/admin`, `/admin/produtos`, `/admin/produtos/novo`, `/admin/produtos/:id`, `/admin/categorias`, `/admin/estoque`, `/admin/pedidos`, `/admin/pedidos/:id`, `/admin/clientes`, `/admin/clientes/:id`, `/admin/catalogos`, `/admin/links`, `/admin/financeiro`, `/admin/financeiro/receitas`, `/admin/financeiro/despesas`, `/admin/relatorios`, `/admin/configuracoes`.
+
+O menu mostra só as seções permitidas ao papel, e a API revalida cada chamada.
+
+Nenhuma URL leva dados de cliente:
+- O link exclusivo carrega só o token do catálogo.
+- O acompanhamento usa o número público do pedido e um token guardado no navegador do comprador (enviado em `X-Order-Token`).
+
+## Funcionalidades
+
+**Loja**
+- Carrinho persistente, com cotação recalculada pela API a cada mudança.
+- O checkout envia `expectedTotal`. Se o preço mudar, a API recusa e a tela pede revisão.
+- O pedido usa chave de idempotência por tentativa, então clique duplo ou recarregar não cria pedido em dobro.
+- Pagamento no ambiente do Mercado Pago (Pix ou cartão). A tela de retorno mostra o status vindo da API e atualiza sozinha enquanto o pagamento estiver pendente.
+
+**Painel**
+- **Produtos:** cadastro, edição e desativação. Variantes com estoque inicial; fotos com upload, texto alternativo, ordem e foto principal.
+- **Estoque e categorias:** entradas, saídas, ajustes de inventário e histórico; alerta de estoque baixo. Categorias editáveis na própria lista.
+- **Catálogos e links:** catálogos com período e produtos; links exclusivos com expiração, limite de pedidos, ativação e cópia da URL.
+- **Pedidos e clientes:** filtros por status e busca, próximas ações por status, envio com rastreio, cancelamento e devolução com reintegração de estoque. Clientes com histórico.
+- **Financeiro:** resumo mensal com critérios explicados, receitas avulsas, despesas, marcar como pago ou cancelar, relatório anual de fluxo de caixa.
+- **Configurações:** frete, prazo de pagamento, alerta de estoque, prefixo do pedido, contatos e equipe.
 
 ## Integração com a API
 
-- `src/lib/api/client.ts`: `fetch` com cabeçalhos de loja (`X-Store`) ou de painel (`Authorization` + `X-Tenant-Id`), erros tipados (`ApiError` com `code` e `message` da API) e renovação automática: em 401, chama `/auth/refresh` uma vez e repete a requisição.
-- Sessão do painel: access token **só em memória**; refresh token em cookie `httpOnly` que o JavaScript não lê. Recarregar a página restaura a sessão pelo refresh.
-- `src/lib/api/types.ts`: contrato consumido. A fonte de verdade é `GET /openapi.json` da API.
-- Dinheiro chega em **centavos**; `formatMoney` é a única conversão para exibição.
-- O carrinho guarda variante e quantidade; preços exibidos devem vir de `POST /checkout/quote`, e o pedido envia `expectedTotal` para que a API recuse se os valores mudarem. O navegador nunca define preço nem disponibilidade.
+- `src/lib/api/client.ts` monta os cabeçalhos: `X-Store` na loja, `Authorization` + `X-Tenant-Id` no painel.
+- Erros chegam tipados (`ApiError` com `code` e `message` da API).
+- Em 401, o client renova a sessão uma vez via `/auth/refresh` e repete a requisição.
+- O access token fica só em memória. O refresh token está em cookie `httpOnly`, que o JavaScript não lê.
+- `src/lib/api/types.ts` e `admin.ts` descrevem o contrato consumido. A fonte de verdade é `GET /openapi.json` da API.
+- Dinheiro chega em centavos, e `formatMoney` é a única conversão para exibição.
 
-## Componentes e design system
+## Trocar as imagens temporárias pelas fotos oficiais
 
-Tokens em `src/styles/tokens.css` (cores, papéis semânticos, tipografia, espaçamento, bordas, interação, camadas, controles). **São provisórios**, derivados da paleta do briefing:
+- **Fotos de produto:** envie pelo painel em *Produtos → produto → Fotos*. Elas vão para o Supabase Storage com o texto alternativo cadastrado.
+- **Fotos editoriais** (hero, linhas, manifesto, inspiração, sobre):
+  1. Coloque o arquivo em `public/media/`.
+  2. Em `src/content/media.ts`, preencha o `src` do slot e revise o `alt`.
 
-- preto profundo dominante (`--color-black`), branco para títulos e texto, grafites para superfícies;
-- verde-limão (`--accent`) reservado a CTAs, indicadores, preços promocionais e foco;
-- display condensado e pesado (Barlow Condensed 800) + sans legível (Inter).
+  Cada slot traz um `brief` com a foto esperada.
 
-Primitivos: `Button` (primary, secondary, ghost, danger), `TextField`/`SelectField` (label associado, `aria-invalid`, erro anunciado), `Alert`, `LoadingState`, `EmptyState`, `AvailabilityBadge`.
+Enquanto `src` for `null`, a loja mostra uma ilustração geométrica com o selo "Foto temporária". Ela nunca se apresenta como foto oficial.
 
-Loja e painel usam os mesmos tokens com tratamentos diferentes: loja com cantos retos e tipografia display; painel com superfícies funcionais, cantos levemente arredondados e números tabulares.
+## Personalizar a identidade
 
-Acessibilidade já aplicada: link "pular para o conteúdo", foco visível em todo elemento interativo, labels em todos os campos, regiões e tabelas semânticas, `prefers-reduced-motion`.
-
-**Personalizar a identidade:** altere os tokens em `tokens.css` e as fontes importadas em `base.css`; componentes não usam valores literais.
-
-## Imagens temporárias e fotos oficiais
-
-Ainda não há fotografias no projeto. Quando os layouts forem construídos, toda imagem temporária ficará identificada como tal e centralizada em um único módulo de mídia, para ser trocada sem tocar nos componentes. Fotos de produto vêm sempre da API (`images[].url`, enviadas pelo painel para o Supabase Storage), com o texto alternativo cadastrado.
+- **Cores, fontes, espaçamentos e raios:** `src/styles/tokens.css`. As fontes importadas ficam em `src/styles/base.css`.
+- **Logotipo e monograma:** `src/brand/Brand.tsx` (SVG).
+- **Textos de marca:** `src/pages/store/HomePage.tsx` e `StorePages.tsx`.
 
 ## Testes
 
 ```bash
-npm test
+npm test             # 20 testes Vitest
+npm run test:e2e     # 6 testes Playwright (desktop + mobile)
 ```
 
-- `tests/logic.test.ts`: dinheiro, seleção obrigatória de tamanho/cor e bloqueio de variante esgotada, carrinho (soma, limites, persistência, troca de contexto), validação do checkout.
-- `tests/admin-flow.test.tsx`: redirecionamento sem sessão, validação e login com envio de `Authorization` e `X-Tenant-Id`, erro de credenciais, cabeçalho `X-Store` e estado de erro na loja.
+**Vitest**
+- Dinheiro, seleção obrigatória de variante, carrinho e schema do checkout.
+- Card de produto: o "+" só adiciona direto quando há uma única variante, há selo de esgotado e a ilustração vem marcada como temporária.
+- Mídia oficial e contagem regressiva.
+- Painel: redirecionamento sem sessão, login com `Authorization`/`X-Tenant-Id` e erro de credenciais; cabeçalho `X-Store`.
 
-A API é simulada no nível do `fetch` nesses testes; a API real é coberta pelos testes de integração do backend.
+**Playwright** (loja e API reais, com banco e seed)
+- Compra completa: variante obrigatória, termos obrigatórios e pedido criado aguardando pagamento.
+- Link exclusivo inválido.
+- Painel exigindo login e listando o pedido.
+
+A API precisa estar no ar com o seed, e `E2E_ADMIN_PASSWORD` deve ser igual a `SEED_ADMIN_PASSWORD`. Os testes também rodam contra a stack Docker: `E2E_BASE_URL=http://localhost:8090 npm run test:e2e`.
 
 ## Limitações e pendências
 
-- **Direção visual pendente:** as três imagens de referência não foram recebidas. Homepage editorial, listagem, página de produto, carrinho, checkout e páginas institucionais têm rotas, dados e estados, mas não o layout final.
-- Logotipo e monograma originais: a criar na fase 2 (o favicon atual é provisório).
-- Formulário de checkout: schema e regras prontos; a tela completa vem na fase 2/4.
-- Seções do painel além do painel inicial (produtos, estoque, pedidos, catálogos, links, financeiro, configurações): rotas e permissões prontas, telas na fase 3/4. Os endpoints já existem na API.
-- Newsletter: não implementada (não há serviço real configurado).
+- Não há fotografias oficiais: a loja usa ilustrações temporárias identificadas.
+- Não há conta de cliente. Os pedidos ficam acessíveis no navegador da compra, pelo token de acompanhamento.
+- Não há newsletter, porque não existe serviço real configurado.
+- Gestão de membros pelo painel: só listagem. Convites e papéis existem na API.
+- A página de políticas é texto-modelo e precisa de revisão da loja antes de vender.
+- A busca de CEP é manual (sem preenchimento automático de endereço).
